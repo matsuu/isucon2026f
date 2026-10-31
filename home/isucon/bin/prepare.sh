@@ -24,6 +24,14 @@ EOF
 )
 sudo systemctl restart isureal-go
 
+# rm webapp/cache/images/*
+
+for s in america1 europe1 ; do
+  rsync -a --delete /home/isucon/webapp/go/ $s:/home/isucon/webapp/go/
+  ssh $s bash -l -c "bin/build.sh"
+  #ssh $s "rm webapp/cache/images/*"
+done
+
 # mysql
 echo "SELECT pg_stat_statements_reset();" | PGPASSWORD=isureal psql -h asia2 -U isureal
 #sudo truncate -s 0 "${mysql_slow_log}"

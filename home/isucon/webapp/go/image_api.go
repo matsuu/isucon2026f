@@ -20,6 +20,20 @@ type getImageRequest struct {
 	Sig     string `query:"sig" json:"-"`
 }
 
+const imageVisibilitySQL = `(
+     u.profile_image_id = i.id
+     OR EXISTS (
+       SELECT 1 FROM posts p
+       WHERE p.image_id = i.id AND p.author_id = u.id AND p.deleted_at IS NULL
+     )
+     OR EXISTS (
+       SELECT 1 FROM realmojis r
+       JOIN posts p ON p.id = r.post_id AND p.deleted_at IS NULL
+       JOIN users author ON author.id = p.author_id AND author.status = 'active'
+       WHERE r.image_id = i.id AND r.reactor_id = u.id AND r.replaced_at IS NULL AND r.deleted_at IS NULL
+     )
+   )`
+
 func getImageHandler(h *HandlerContext) echo.HandlerFunc {
 	return func(c *echo.Context) error {
 		c.Response().Header().Set("Cache-Control", "no-store")
@@ -41,9 +55,13 @@ func getImageHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 
 		ctx := c.Request().Context()
-		var secretKeyHash string
-		err = h.DB.GetContext(ctx, &secretKeyHash, `
-   SELECT u.secret_key_hash
+		var image struct {
+			SecretKeyHash string `db:"secret_key_hash"`
+			MediaType     string `db:"media_type"`
+			Visible       bool   `db:"visible"`
+		}
+		err = h.DB.GetContext(ctx, &image, `
+   SELECT u.secret_key_hash, i.media_type, `+imageVisibilitySQL+` AS visible
    FROM image_objects i JOIN users u ON u.id = i.owner_user_id
    WHERE i.id = $1 AND u.status = 'active'
   `, input.ImageID)
@@ -53,7 +71,7 @@ func getImageHandler(h *HandlerContext) echo.HandlerFunc {
 		if err != nil {
 			return err
 		}
-		key, err := imageSigningKey(secretKeyHash)
+		key, err := imageSigningKey(image.SecretKeyHash)
 		if err != nil {
 			return err
 		}
@@ -61,28 +79,27 @@ func getImageHandler(h *HandlerContext) echo.HandlerFunc {
 			c.Set("abuse", "invalid_signature")
 			return NewAPIError(http.StatusForbidden, "image_forbidden")
 		}
+		if !image.Visible {
+			return NewAPIError(http.StatusForbidden, "image_forbidden")
+		}
+		if exp <= time.Now().Unix() {
+			return NewAPIError(http.StatusForbidden, "image_forbidden")
+		}
 
-		// 削除状態を毎回確認する。即時反映も5秒以内の許容範囲に含まれる。
+		cachePath, cached := h.cachedImagePath(input.ImageID, image.MediaType)
+		if cached {
+			return serveCachedImage(c, cachePath, image.MediaType)
+		}
+
+		// キャッシュヒット時も最初のクエリで削除状態を確認済み。
+		// ミス時はデータ取得クエリでも再確認する。即時反映も5秒以内の許容範囲に含まれる。
 		var object struct {
-			Data      []byte `db:"data"`
-			MediaType string `db:"media_type"`
+			Data []byte `db:"data"`
 		}
 		err = h.DB.GetContext(ctx, &object, `
-   SELECT i.data, i.media_type
+   SELECT i.data
    FROM image_objects i JOIN users u ON u.id = i.owner_user_id AND u.status = 'active'
-   WHERE i.id = $1 AND (
-     u.profile_image_id = i.id
-     OR EXISTS (
-       SELECT 1 FROM posts p
-       WHERE p.image_id = i.id AND p.author_id = u.id AND p.deleted_at IS NULL
-     )
-     OR EXISTS (
-       SELECT 1 FROM realmojis r
-       JOIN posts p ON p.id = r.post_id AND p.deleted_at IS NULL
-       JOIN users author ON author.id = p.author_id AND author.status = 'active'
-       WHERE r.image_id = i.id AND r.reactor_id = u.id AND r.replaced_at IS NULL AND r.deleted_at IS NULL
-     )
-   )
+   WHERE i.id = $1 AND `+imageVisibilitySQL+`
   `, input.ImageID)
 		if errors.Is(err, sql.ErrNoRows) {
 			return NewAPIError(http.StatusForbidden, "image_forbidden")
@@ -93,6 +110,10 @@ func getImageHandler(h *HandlerContext) echo.HandlerFunc {
 		if exp <= time.Now().Unix() {
 			return NewAPIError(http.StatusForbidden, "image_forbidden")
 		}
-		return c.Blob(http.StatusOK, object.MediaType, object.Data)
+		if err := writeImageCacheFile(cachePath, object.Data); err != nil {
+			// キャッシュに書けなくても画像自体は返す。
+			return c.Blob(http.StatusOK, image.MediaType, object.Data)
+		}
+		return serveCachedImage(c, cachePath, image.MediaType)
 	}
 }

@@ -1,7 +1,7 @@
 .PHONY: isureal clean
 
 isureal:
-	go build -o isureal cmd/isureal/main.go
+	go build -buildvcs=false -o isureal cmd/isureal/main.go
 
 clean:
 	rm -f isureal

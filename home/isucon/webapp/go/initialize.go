@@ -15,12 +15,16 @@ type initializeResponse struct {
 	Model    string `json:"model"`
 }
 
-func initializeHandler(*HandlerContext) echo.HandlerFunc {
+func initializeHandler(h *HandlerContext) echo.HandlerFunc {
 	return func(c *echo.Context) error {
 		cmd := exec.Command("../sql/init.sh")
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if err := cmd.Run(); err != nil {
+			return err
+		}
+		// DB を初期化したので、前回の実行で残った画像キャッシュも捨てる。
+		if err := h.clearImageCache(); err != nil {
 			return err
 		}
 

@@ -20,6 +20,9 @@ func NewServer(config *Config) *echo.Echo {
 	if !validRegion(config.Region) {
 		panic("invalid server region: " + config.Region)
 	}
+	if err := os.MkdirAll(config.ImageCacheDir, 0o755); err != nil {
+		panic("failed to create image cache directory: " + err.Error())
+	}
 	e := echo.New()
 	e.IPExtractor = extractClientIP
 

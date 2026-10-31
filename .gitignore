@@ -180,6 +180,7 @@
 /home/isucon/webapp/python/
 /home/isucon/webapp/ruby/
 /home/isucon/webapp/rust/
+/home/isucon/webapp/cache/
 /home/isucon/.*
 
 !/result/
