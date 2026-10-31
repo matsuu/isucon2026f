@@ -56,11 +56,13 @@ func createCommentHandler(h *HandlerContext) echo.HandlerFunc {
 		defer tx.Rollback()
 		// コメント同士は直列化しない。FOR SHARE は複数同時に取得でき、
 		// アカウント削除などの FOR NO KEY UPDATE とは競合する。
-		for _, id := range slices.Compact([]string{min(actor, post.AuthorID), max(actor, post.AuthorID)}) {
-			var sharedID string
-			if err := tx.GetContext(ctx, &sharedID, `SELECT id FROM users WHERE id=$1 FOR SHARE`, id); err != nil {
-				return err
-			}
+		lockIDs := slices.Compact([]string{min(actor, post.AuthorID), max(actor, post.AuthorID)})
+		var lockedIDs []string
+		if err := tx.SelectContext(ctx, &lockedIDs, `SELECT id FROM users WHERE id = ANY($1::text[]) ORDER BY id FOR SHARE`, lockIDs); err != nil {
+			return err
+		}
+		if len(lockedIDs) != len(lockIDs) {
+			return NewAPIError(http.StatusForbidden, "interaction_forbidden")
 		}
 		allowed, err := canComment(ctx, tx, actor, post.ID)
 		if err != nil {

@@ -3,7 +3,6 @@ package isureal
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"net/http"
 	"time"
 
@@ -46,15 +45,15 @@ func beginRelationshipTx(ctx context.Context, db *sqlx.DB, actor, target string)
 	// FOR SHARE は複数トランザクションで共存できる。
 	// アカウント削除やプロフィール更新の FOR NO KEY UPDATE とは競合するため、
 	// active状態の確認は維持しつつ、関係操作同士はブロックしない。
-	for _, id := range []string{min(actor, target), max(actor, target)} {
-		var activeID string
-		if err := tx.GetContext(ctx, &activeID, `SELECT id FROM users WHERE id=$1 AND status='active' FOR SHARE`, id); err != nil {
-			tx.Rollback()
-			if errors.Is(err, sql.ErrNoRows) {
-				return nil, NewAPIError(http.StatusNotFound, "relationship_not_found")
-			}
-			return nil, err
-		}
+	ids := []string{min(actor, target), max(actor, target)}
+	var activeIDs []string
+	if err := tx.SelectContext(ctx, &activeIDs, `SELECT id FROM users WHERE id = ANY($1::text[]) AND status='active' ORDER BY id FOR SHARE`, ids); err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+	if len(activeIDs) != len(ids) {
+		tx.Rollback()
+		return nil, NewAPIError(http.StatusNotFound, "relationship_not_found")
 	}
 	return tx, nil
 }

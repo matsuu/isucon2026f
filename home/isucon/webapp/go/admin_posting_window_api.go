@@ -43,7 +43,10 @@ func openPostingWindowHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		defer tx.Rollback()
-		if _, err := tx.ExecContext(ctx, `LOCK TABLE users IN SHARE ROW EXCLUSIVE MODE`); err != nil {
+		// 同じリージョンの投稿枠オープンだけを直列化する。
+		// usersテーブル全体をロックすると、通知INSERT中に登録・プロフィール更新が待たされる。
+		lockKey := "posting-window:" + region
+		if _, err := tx.ExecContext(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`, lockKey); err != nil {
 			return err
 		}
 		var conflict bool
