@@ -47,7 +47,7 @@ sudo truncate -s 0 "${nginx_error_log}"
 
 
 (
-  dstat -tlamp -no-color 1 180 > /result/dstat-asia1.txt &
-  ssh asia2 dstat -tlamp -no-color 1 180 > /result/dstat-asia2.txt &
+  dstat -tlamp -no-color 1 90 > /result/dstat-asia1.txt &
+  ssh asia2 dstat -tlamp -no-color 1 90 > /result/dstat-asia2.txt &
 )
 echo "OK"

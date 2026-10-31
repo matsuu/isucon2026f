@@ -170,12 +170,17 @@ CREATE TABLE posts (
   locality text,
   posted_at timestamptz NOT NULL,
   created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-  deleted_at timestamptz
+  deleted_at timestamptz,
+  -- migration 001 で追加。初期データロード互換のため nullable。アプリの INSERT では必ず設定する。
+  posting_window_local_date date
 );
 CREATE INDEX posts_author_id ON posts(author_id);
 CREATE INDEX posts_posting_window_id ON posts(posting_window_id);
 CREATE INDEX posts_id_idx ON posts(id) WHERE deleted_at IS NULL;
 CREATE INDEX posts_image_id_author_id_idx ON posts(image_id, author_id) WHERE deleted_at IS NULL;
+CREATE INDEX idx_posts_author_local_date ON posts(author_id, posting_window_local_date);
+-- 削除後の再投稿を許可するため、active投稿だけを一意にする。
+CREATE UNIQUE INDEX idx_posts_author_local_date_unique ON posts(author_id, posting_window_local_date) WHERE deleted_at IS NULL;
 
 CREATE TABLE friend_requests (
   id varchar(36) PRIMARY KEY,

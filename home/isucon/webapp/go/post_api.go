@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/labstack/echo/v5"
 )
 
@@ -104,30 +105,23 @@ func createPostHandler(h *HandlerContext) echo.HandlerFunc {
 			LocalDate time.Time `db:"local_date"`
 			StartsAt  time.Time `db:"starts_at"`
 		}
-		err = tx.GetContext(ctx, &window, `SELECT id, local_date, starts_at FROM posting_windows WHERE region = $1 AND ended_at IS NULL FOR UPDATE`, user.Region)
+		err = tx.GetContext(ctx, &window, `SELECT id, local_date, starts_at FROM posting_windows WHERE region = $1 AND ended_at IS NULL`, user.Region)
 		if errors.Is(err, sql.ErrNoRows) {
-			err = tx.GetContext(ctx, &window, `SELECT id, local_date, starts_at FROM posting_windows WHERE region = $1 AND ended_at IS NULL FOR UPDATE`, user.Region)
+			return NewAPIError(http.StatusConflict, "post_slot_unavailable")
 		}
 		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				return NewAPIError(http.StatusConflict, "post_slot_unavailable")
-			}
 			return err
 		}
-		var counts struct {
-			Active  int `db:"active"`
-			Deleted int `db:"deleted"`
-		}
-		if err := tx.GetContext(ctx, &counts, `
-   SELECT count(*) FILTER (WHERE deleted_at IS NULL) AS active,
-          count(*) FILTER (WHERE deleted_at IS NOT NULL) AS deleted
-   FROM posts p JOIN posting_windows w ON w.id = p.posting_window_id
-   WHERE p.author_id = $1 AND w.local_date = $2
+		var deletions int
+		if err := tx.GetContext(ctx, &deletions, `
+   SELECT count(*)
+   FROM posts
+   WHERE author_id = $1 AND posting_window_local_date = $2 AND deleted_at IS NOT NULL
   `, userID, window.LocalDate); err != nil {
 			return err
 		}
 		postedAt := time.Now().UTC()
-		if counts.Active != 0 || counts.Deleted >= 2 || postedAt.Before(window.StartsAt) {
+		if deletions >= 2 || postedAt.Before(window.StartsAt) {
 			return NewAPIError(http.StatusConflict, "post_slot_unavailable")
 		}
 		imageID := uuid.NewString()
@@ -136,11 +130,14 @@ func createPostHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		postID := uuid.NewString()
 		if _, err := tx.ExecContext(ctx, `
-   INSERT INTO posts (id, author_id, posting_window_id, image_id, caption, visibility,
+   INSERT INTO posts (id, author_id, posting_window_id, posting_window_local_date, image_id, caption, visibility,
                       location_kind, latitude, longitude, locality, posted_at)
-   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-  `, postID, userID, window.ID, imageID, input.Caption, input.Visibility,
+   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+  `, postID, userID, window.ID, window.LocalDate, imageID, input.Caption, input.Visibility,
 			location.Kind, location.Latitude, location.Longitude, location.Locality, postedAt); err != nil {
+			if isPostSlotUniqueViolation(err) {
+				return NewAPIError(http.StatusConflict, "post_slot_unavailable")
+			}
 			return err
 		}
 		post, err := getPost(ctx, tx, postID)
@@ -152,6 +149,11 @@ func createPostHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		return c.JSON(http.StatusCreated, newPostResponse(post, user))
 	}
+}
+
+func isPostSlotUniqueViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "idx_posts_author_local_date_unique"
 }
 
 func newPostResponse(post Post, user User) createPostResponse {
@@ -356,8 +358,9 @@ func deletePostHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		var deletions int
 		if err := tx.GetContext(ctx, &deletions, `
-   SELECT count(*) FROM posts p JOIN posting_windows w ON w.id = p.posting_window_id
-   WHERE p.author_id = $1 AND w.local_date = $2 AND p.deleted_at IS NOT NULL
+   SELECT count(*)
+   FROM posts
+   WHERE author_id = $1 AND posting_window_local_date = $2 AND deleted_at IS NOT NULL
   `, userID, window.LocalDate); err != nil {
 			return err
 		}
