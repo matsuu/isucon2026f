@@ -71,6 +71,9 @@ func createFriendRequestHandler(h *HandlerContext) echo.HandlerFunc {
 		} else if errors.Is(err, sql.ErrNoRows) {
 			requestID = uuid.NewString()
 			if _, err := tx.ExecContext(ctx, `INSERT INTO friend_requests (id, requester_id, recipient_id, status, created_at, updated_at) VALUES ($1,$2,$3,'pending',clock_timestamp(),clock_timestamp())`, requestID, actor, input.RecipientID); err != nil {
+				if isUniqueViolation(err, "friend_requests_pending_pair_unique") {
+					return NewAPIError(http.StatusConflict, "relationship_conflict")
+				}
 				return err
 			}
 		} else {

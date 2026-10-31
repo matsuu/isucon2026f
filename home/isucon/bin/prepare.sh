@@ -24,14 +24,31 @@ EOF
 )
 sudo systemctl restart isureal-go
 
-# rm webapp/cache/images/*
+# preset画像が欠けていると画像配信が壊れるため、最低1枚存在することを確認する。
+if [ -z "$(find /home/isucon/webapp/preset-images -type f -print -quit 2>/dev/null)" ]; then
+  echo "preset images are missing" >&2
+  exit 1
+fi
+
+# 全台の実行時画像キャッシュを空にする。presetは削除しない。
+rm -rf /home/isucon/webapp/cache/images/*
 
 for s in america1 europe1 ; do
   rsync -a --delete /home/isucon/webapp/go/ $s:/home/isucon/webapp/go/
-  cat /etc/nginx/sites-available/isureal.conf | ssh $s sudo tee /etc/nginx/sites-available/isureal.conf
+  cat /home/isucon/isureal.conf | ssh $s sudo tee /etc/nginx/sites-available/isureal.conf >/dev/null
+  if ! ssh $s "test -n \"\$(find /home/isucon/webapp/preset-images -type f -print -quit 2>/dev/null)\""; then
+    echo "preset images are missing on $s; syncing..." >&2
+    rsync -a /home/isucon/webapp/preset-images/ $s:/home/isucon/webapp/preset-images/
+  fi
   ssh $s bash -l -c "bin/build.sh"
-  #ssh $s "rm webapp/cache/images/*"
+  ssh $s "sudo nginx -t && sudo systemctl reload nginx"
+  ssh $s "rm -rf /home/isucon/webapp/cache/images/*"
 done
+
+# ローカルのnginx設定もマスターに合わせて反映する。
+sudo cp /home/isucon/isureal.conf /etc/nginx/sites-available/isureal.conf
+sudo nginx -t
+sudo systemctl reload nginx
 
 # mysql
 echo "SELECT pg_stat_statements_reset();" | PGPASSWORD=isureal psql -h asia2 -U isureal

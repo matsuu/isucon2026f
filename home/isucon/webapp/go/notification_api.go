@@ -23,10 +23,6 @@ func getNotificationsHandler(h *HandlerContext) echo.HandlerFunc {
 		ctx := c.Request().Context()
 		session := GetSession(c)
 		userID := session.UserID
-		var connectedAt time.Time
-		if err := h.DB.GetContext(ctx, &connectedAt, `SELECT clock_timestamp()`); err != nil {
-			return err
-		}
 		response := c.Response()
 		response.Header().Set("Content-Type", "text/event-stream")
 		response.WriteHeader(http.StatusOK)
@@ -35,14 +31,15 @@ func getNotificationsHandler(h *HandlerContext) echo.HandlerFunc {
 			return nil
 		}
 		// LISTEN/NOTIFYのイベントで起床する。LISTEN接続はアプリ全体で1本。
-		// 30秒tickerはLISTEN切断時のフォールバック。
+		// 1秒tickerはLISTEN切断時のフォールバック。接続時点で現在枠の通知が
+		// 既に作られていても、その通知を返す。
 		var events <-chan struct{}
 		if h.Notifications != nil {
 			var unsubscribe func()
 			events, unsubscribe = h.Notifications.Subscribe()
 			defer unsubscribe()
 		}
-		ticker := time.NewTicker(30 * time.Second)
+		ticker := time.NewTicker(time.Second)
 		defer ticker.Stop()
 		for {
 			var row struct {
@@ -60,13 +57,12 @@ func getNotificationsHandler(h *HandlerContext) echo.HandlerFunc {
      FROM notifications n
      JOIN posting_windows w ON w.id = n.posting_window_id
      WHERE n.user_id = u.id
-       AND n.created_at > $2
        AND w.ended_at IS NULL
      ORDER BY n.created_at, n.id
      LIMIT 1
    ) latest ON true
    WHERE u.id = $1 AND u.status = 'active'
-  `, userID, connectedAt)
+  `, userID)
 			if errors.Is(err, sql.ErrNoRows) {
 				return nil
 			}

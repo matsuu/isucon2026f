@@ -188,7 +188,6 @@ CREATE TABLE posts (
 );
 CREATE INDEX posts_author_id ON posts(author_id);
 CREATE INDEX posts_author_posted_at_id_idx ON posts(author_id, posted_at DESC, id DESC) WHERE deleted_at IS NULL;
-CREATE INDEX posts_visibility_posted_at_id_idx ON posts(visibility, posted_at DESC, id DESC) WHERE deleted_at IS NULL;
 CREATE INDEX posts_posting_window_id ON posts(posting_window_id);
 CREATE INDEX posts_id_idx ON posts(id) WHERE deleted_at IS NULL;
 CREATE INDEX posts_image_id_author_id_idx ON posts(image_id, author_id) WHERE deleted_at IS NULL;
@@ -206,6 +205,7 @@ CREATE TABLE friend_requests (
 );
 CREATE INDEX friend_requests_recipient_id_status_updated_at_id_idx ON friend_requests(recipient_id, status, updated_at DESC, id DESC);
 CREATE INDEX friend_requests_requester_id_status_updated_at_id_idx ON friend_requests(requester_id, status, updated_at DESC, id DESC);
+CREATE UNIQUE INDEX friend_requests_pending_pair_unique ON friend_requests (LEAST(requester_id, recipient_id), GREATEST(requester_id, recipient_id)) WHERE status = 'pending';
 
 CREATE TABLE realmojis (
   id varchar(36) PRIMARY KEY,
