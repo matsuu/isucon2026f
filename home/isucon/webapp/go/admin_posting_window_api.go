@@ -70,22 +70,19 @@ func openPostingWindowHandler(h *HandlerContext) echo.HandlerFunc {
   `, windowID, region, localDate, startsAt, startsAt.Add(time.Duration(seconds)*time.Second)); err != nil {
 			return err
 		}
+		onTimeDeadline := startsAt.Add(time.Duration(seconds) * time.Second)
 		if _, err := tx.ExecContext(ctx, `
    INSERT INTO notifications (id, user_id, posting_window_id, created_at)
    SELECT gen_random_uuid()::text, id, $2, $3 FROM users WHERE region = $1 AND status = 'active'
   `, region, windowID, startsAt); err != nil {
 			return err
 		}
-		window, err := getPostingWindow(ctx, tx, windowID)
-		if err != nil {
-			return err
-		}
 		if err := tx.Commit(); err != nil {
 			return err
 		}
 		return c.JSON(http.StatusCreated, openPostingWindowResponse{
-			ID: window.ID, Region: window.Region, LocalDate: window.LocalDate.Format(time.DateOnly),
-			StartsAt: window.StartsAt, OnTimeDeadline: window.OnTimeDeadline,
+			ID: windowID, Region: region, LocalDate: localDate.Format(time.DateOnly),
+			StartsAt: startsAt, OnTimeDeadline: onTimeDeadline,
 		})
 	}
 }

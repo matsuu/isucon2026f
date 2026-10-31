@@ -244,24 +244,17 @@ CREATE TABLE notifications (
   created_at timestamptz NOT NULL,
   PRIMARY KEY (user_id, posting_window_id)
 );
-CREATE INDEX notifications_user_created_at_id_idx ON notifications(user_id, created_at, id);
 
 -- 一括INSERT後に1回だけ通知する。SSEはアプリ全体で1本のLISTEN接続を共有する。
 CREATE OR REPLACE FUNCTION isureal_notify_notifications() RETURNS trigger AS $$
-DECLARE
-  window_id text;
 BEGIN
-  SELECT posting_window_id INTO window_id FROM new_rows LIMIT 1;
-  IF window_id IS NOT NULL THEN
-    PERFORM pg_notify('isureal_notifications', window_id);
-  END IF;
+  PERFORM pg_notify('isureal_notifications', '');
   RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER notifications_notify
 AFTER INSERT ON notifications
-REFERENCING NEW TABLE AS new_rows
 FOR EACH STATEMENT
 EXECUTE FUNCTION isureal_notify_notifications();
 
