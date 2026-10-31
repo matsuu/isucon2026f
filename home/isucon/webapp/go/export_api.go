@@ -22,11 +22,13 @@ func exportPostsHandler(h *HandlerContext) echo.HandlerFunc {
 		if err != nil {
 			return err
 		}
+		// 投稿画像は posts.posted_at と image_objects.created_at が一致する。
+		// created_at も条件に含めることで image_objects のパーティションを絞る。
 		rows, err := h.DB.QueryxContext(ctx, `
    SELECT `+postColumns+`, i.data AS image_data
    FROM posts p
    JOIN posting_windows w ON w.id = p.posting_window_id
-   JOIN image_objects i ON i.id = p.image_id
+   JOIN image_objects i ON i.id = p.image_id AND i.created_at = p.posted_at
    WHERE p.author_id = $1 AND p.deleted_at IS NULL
    ORDER BY p.posted_at, p.id
   `, userID)

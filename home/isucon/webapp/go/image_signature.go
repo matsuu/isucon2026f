@@ -8,11 +8,40 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"sync"
 	"time"
 )
 
 const imageURLLifetime = 24 * time.Hour
+const imageURLExpiryBucket = 5 * time.Second
 const imageSignatureIterations = 1000
+const imageSignatureCacheTTL = time.Minute
+
+type imageSignatureCacheEntry struct {
+	signature []byte
+	expiresAt time.Time
+}
+
+var imageSignatureCache sync.Map
+var imageSignatureCacheCleanupOnce sync.Once
+
+func startImageSignatureCacheCleanup() {
+	imageSignatureCacheCleanupOnce.Do(func() {
+		go func() {
+			ticker := time.NewTicker(30 * time.Second)
+			defer ticker.Stop()
+			for now := range ticker.C {
+				imageSignatureCache.Range(func(key, value any) bool {
+					entry, ok := value.(imageSignatureCacheEntry)
+					if !ok || !now.Before(entry.expiresAt) {
+						imageSignatureCache.Delete(key)
+					}
+					return true
+				})
+			}
+		}()
+	})
+}
 
 func imageSigningKey(secretKeyHash string) ([]byte, error) {
 	key, err := hex.DecodeString(secretKeyHash)
@@ -22,7 +51,7 @@ func imageSigningKey(secretKeyHash string) ([]byte, error) {
 	return key, nil
 }
 
-func imageSignature(key []byte, imageID string, exp int64) []byte {
+func computeImageSignature(key []byte, imageID string, exp int64) []byte {
 	// HMACオブジェクトと作業バッファを再利用する。
 	// 1000回の反復ごとにhmac.Newでキースケジュールを作り直すとCPU負荷が高い。
 	value := make([]byte, 0, 64)
@@ -39,8 +68,28 @@ func imageSignature(key []byte, imageID string, exp int64) []byte {
 	return value
 }
 
+func imageSignature(key []byte, imageID string, exp int64) []byte {
+	cacheKey := string(key) + "\x00" + imageID + "\x00" + strconv.FormatInt(exp, 10)
+	now := time.Now()
+	if value, ok := imageSignatureCache.Load(cacheKey); ok {
+		entry, ok := value.(imageSignatureCacheEntry)
+		if ok && now.Before(entry.expiresAt) {
+			return append([]byte(nil), entry.signature...)
+		}
+		imageSignatureCache.Delete(cacheKey)
+	}
+
+	signature := computeImageSignature(key, imageID, exp)
+	imageSignatureCache.Store(cacheKey, imageSignatureCacheEntry{
+		signature: append([]byte(nil), signature...),
+		expiresAt: now.Add(imageSignatureCacheTTL),
+	})
+	return signature
+}
+
 func signedImageURL(user User, imageID string) string {
-	exp := time.Now().Add(imageURLLifetime).Unix()
+	// 5秒間は同じexp・同じ署名を返す。署名キャッシュのヒット率を上げる。
+	exp := time.Now().Add(imageURLLifetime).Truncate(imageURLExpiryBucket).Unix()
 	query := url.Values{
 		"exp": {strconv.FormatInt(exp, 10)},
 		"sig": {base64.RawURLEncoding.EncodeToString(imageSignature(user.ImageKey, imageID, exp))},

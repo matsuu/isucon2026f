@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
 DROP TABLE IF EXISTS
   ip_bans,
   notifications,
@@ -16,6 +18,7 @@ DROP TABLE IF EXISTS
   login_sessions,
   administrators,
   users,
+  image_object_locations,
   image_objects;
 
 -- 2026-09-01: 画像をDBにおかないと、別のサーバーからデータを返却したときに404になってしまう。ファイル配置に変更して障害になってしまったので注意。ここは決して変更しないこと。
@@ -65,6 +68,13 @@ CREATE TABLE image_objects_202705 PARTITION OF image_objects FOR VALUES FROM ('2
 CREATE TABLE image_objects_202706 PARTITION OF image_objects FOR VALUES FROM ('2027-06-01 00:00:00+00') TO ('2027-07-01 00:00:00+00');
 CREATE TABLE image_objects_default PARTITION OF image_objects DEFAULT;
 
+-- image_objects は created_at でパーティション分割されているため、id だけでは
+-- 全パーティションを走査する。画像IDから created_at を引くための索引テーブル。
+CREATE TABLE image_object_locations (
+  id varchar(36) PRIMARY KEY,
+  created_at timestamptz NOT NULL
+);
+
 CREATE TABLE users (
   id varchar(36) PRIMARY KEY,
   username varchar(64) NOT NULL,
@@ -83,6 +93,8 @@ CREATE TABLE users (
   updated_at timestamptz NOT NULL DEFAULT clock_timestamp()
 );
 CREATE UNIQUE INDEX users_username_key ON users(username);
+CREATE INDEX users_username_trgm_idx ON users USING gin (username gin_trgm_ops);
+CREATE INDEX users_display_name_trgm_idx ON users USING gin (display_name gin_trgm_ops);
 ALTER TABLE image_objects ADD CONSTRAINT image_objects_owner_fk FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE RESTRICT;
 
 -- 2026-09-10 管理者を消す時のオペレーションはどうすればよいですか？
@@ -219,8 +231,10 @@ CREATE INDEX comments_post_id ON comments(post_id);
 
 CREATE TABLE notifications (
   id varchar(36) NOT NULL,
-  user_id varchar(36) NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
-  posting_window_id varchar(36) NOT NULL REFERENCES posting_windows(id) ON DELETE RESTRICT,
+  -- 通知は一括INSERTが重いため外部キーを張らない。
+  -- 挿入元は users / posting_windows から選んでおり、アプリ側で整合性を保証する。
+  user_id varchar(36) NOT NULL,
+  posting_window_id varchar(36) NOT NULL,
   created_at timestamptz NOT NULL,
   PRIMARY KEY (user_id, posting_window_id)
 );

@@ -46,8 +46,10 @@ func searchUsersHandler(h *HandlerContext) echo.HandlerFunc {
 			// ベンチマークの検索はユーザー名（ASCII）が中心。SQL側で候補を絞り、
 			// Go側の正規化・部分一致フィルタはそのまま残して意味を維持する。
 			// 非ASCII検索は従来どおり全activeユーザーを対象にする。
-			pattern := "%" + input.Q + "%"
-			if err := h.DB.SelectContext(ctx, &users, `SELECT `+strings.Join(userColumns, ", ")+` FROM users WHERE status='active' AND id<>$1 AND ($2='' OR (username,id)>($2,$3)) AND (username ILIKE $4 OR display_name ILIKE $4) ORDER BY username, id LIMIT 501`, viewer, input.BeforeUsername, input.BeforeID, pattern); err != nil {
+			// LIKEのワイルドカード（_/%）をエスケープし、ユーザー名の_などを literal に扱う。
+			escaped := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(input.Q)
+			pattern := "%" + escaped + "%"
+			if err := h.DB.SelectContext(ctx, &users, `SELECT `+strings.Join(userColumns, ", ")+` FROM users WHERE status='active' AND id<>$1 AND ($2='' OR (username,id)>($2,$3)) AND (username ILIKE $4 ESCAPE '\' OR display_name ILIKE $4 ESCAPE '\') ORDER BY username, id LIMIT 501`, viewer, input.BeforeUsername, input.BeforeID, pattern); err != nil {
 				return err
 			}
 		} else if err := h.DB.SelectContext(ctx, &users, `SELECT `+strings.Join(userColumns, ", ")+` FROM users WHERE status='active' AND id<>$1 AND ($2='' OR (username,id)>($2,$3)) ORDER BY username, id`, viewer, input.BeforeUsername, input.BeforeID); err != nil {

@@ -52,7 +52,7 @@ func replaceRealMojiHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		defer file.Close()
-		data, err := readValidatedJPEG(file, 512)
+		data, err := readJPEGWithConfig(file, 512)
 		if err != nil {
 			return NewAPIError(http.StatusBadRequest, "invalid_realmoji")
 		}
@@ -85,7 +85,11 @@ func replaceRealMojiHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		imageID := uuid.NewString()
-		if _, err := tx.ExecContext(ctx, `INSERT INTO image_objects(id,owner_user_id,data,media_type) VALUES($1,$2,$3,'image/jpeg')`, imageID, actor, data); err != nil {
+		var createdAt time.Time
+		if err := tx.GetContext(ctx, &createdAt, `INSERT INTO image_objects(id,owner_user_id,data,media_type) VALUES($1,$2,$3,'image/jpeg') RETURNING created_at`, imageID, actor, data); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `INSERT INTO image_object_locations (id, created_at) VALUES ($1,$2)`, imageID, createdAt); err != nil {
 			return err
 		}
 		id := uuid.NewString()

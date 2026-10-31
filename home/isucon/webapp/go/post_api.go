@@ -69,7 +69,7 @@ func createPostHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		defer imageFile.Close()
-		imageData, err := readValidatedJPEG(imageFile, 4096)
+		imageData, err := readJPEGWithConfig(imageFile, 4096)
 		if err != nil {
 			return NewAPIError(http.StatusBadRequest, "invalid_post")
 		}
@@ -115,6 +115,9 @@ func createPostHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		imageID := uuid.NewString()
 		if _, err := tx.ExecContext(ctx, `INSERT INTO image_objects (id, owner_user_id, data, media_type, created_at) VALUES ($1, $2, $3, 'image/jpeg', $4)`, imageID, userID, imageData, postedAt); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `INSERT INTO image_object_locations (id, created_at) VALUES ($1, $2)`, imageID, postedAt); err != nil {
 			return err
 		}
 		postID := uuid.NewString()

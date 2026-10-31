@@ -62,8 +62,10 @@ func getImageHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		err = h.DB.GetContext(ctx, &image, `
    SELECT u.secret_key_hash, i.media_type, `+imageVisibilitySQL+` AS visible
-   FROM image_objects i JOIN users u ON u.id = i.owner_user_id
-   WHERE i.id = $1 AND u.status = 'active'
+   FROM image_object_locations l
+   JOIN image_objects i ON i.id = l.id AND i.created_at = l.created_at
+   JOIN users u ON u.id = i.owner_user_id
+   WHERE l.id = $1 AND u.status = 'active'
   `, input.ImageID)
 		if errors.Is(err, sql.ErrNoRows) {
 			return NewAPIError(http.StatusForbidden, "image_forbidden")
@@ -103,8 +105,10 @@ func getImageHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		err = h.DB.GetContext(ctx, &object, `
    SELECT i.data
-   FROM image_objects i JOIN users u ON u.id = i.owner_user_id AND u.status = 'active'
-   WHERE i.id = $1 AND `+imageVisibilitySQL+`
+   FROM image_object_locations l
+   JOIN image_objects i ON i.id = l.id AND i.created_at = l.created_at
+   JOIN users u ON u.id = i.owner_user_id AND u.status = 'active'
+   WHERE l.id = $1 AND `+imageVisibilitySQL+`
   `, input.ImageID)
 		if errors.Is(err, sql.ErrNoRows) {
 			return NewAPIError(http.StatusForbidden, "image_forbidden")

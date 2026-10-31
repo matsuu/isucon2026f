@@ -26,6 +26,7 @@ func NewServer(config *Config) *echo.Echo {
 	if err := os.MkdirAll(config.PresetImageDir, 0o755); err != nil {
 		panic("failed to create preset image directory: " + err.Error())
 	}
+	startImageSignatureCacheCleanup()
 	e := echo.New()
 	e.IPExtractor = extractClientIP
 

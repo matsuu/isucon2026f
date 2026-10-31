@@ -21,6 +21,7 @@ BEGIN
   END LOOP;
 END $$;
 DELETE FROM image_objects WHERE created_at > (SELECT created_at FROM initial_data_boundary);
+DELETE FROM image_object_locations WHERE created_at > (SELECT created_at FROM initial_data_boundary);
 DELETE FROM users WHERE created_at > (SELECT created_at FROM initial_data_boundary);
 
 UPDATE users u
