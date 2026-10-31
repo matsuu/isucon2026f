@@ -23,11 +23,18 @@ func imageSigningKey(secretKeyHash string) ([]byte, error) {
 }
 
 func imageSignature(key []byte, imageID string, exp int64) []byte {
-	value := []byte(strconv.FormatInt(exp, 10) + ":" + imageID)
+	// HMACオブジェクトと作業バッファを再利用する。
+	// 1000回の反復ごとにhmac.Newでキースケジュールを作り直すとCPU負荷が高い。
+	value := make([]byte, 0, 64)
+	value = strconv.AppendInt(value, exp, 10)
+	value = append(value, ':')
+	value = append(value, imageID...)
+
+	mac := hmac.New(sha256.New, key)
 	for range imageSignatureIterations {
-		mac := hmac.New(sha256.New, key)
+		mac.Reset()
 		mac.Write(value)
-		value = mac.Sum(nil)
+		value = mac.Sum(value[:0])
 	}
 	return value
 }

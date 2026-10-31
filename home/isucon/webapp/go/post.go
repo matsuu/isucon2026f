@@ -102,7 +102,7 @@ type viewerContext struct {
 }
 
 func loadViewerContext(ctx context.Context, db sqlx.QueryerContext, viewerID string) (viewerContext, error) {
-	viewer := viewerContext{Friends: map[string]bool{}, FriendsOfFriends: map[string]bool{}, MutualFriends: map[string]int{}}
+	viewer := viewerContext{}
 	var row struct {
 		User
 		HasPostedToday bool `db:"has_posted_today"`
@@ -137,6 +137,7 @@ func loadViewerContext(ctx context.Context, db sqlx.QueryerContext, viewerID str
 	if len(friends) == 0 {
 		return viewer, nil
 	}
+	viewer.Friends = make(map[string]bool, len(friends))
 	for _, id := range friends {
 		viewer.Friends[id] = true
 	}
@@ -147,6 +148,8 @@ func loadViewerContext(ctx context.Context, db sqlx.QueryerContext, viewerID str
 	if err := sqlx.SelectContext(ctx, db, &friendships, `SELECT user_low_id, user_high_id FROM friendships WHERE user_low_id = ANY($1::text[]) OR user_high_id = ANY($1::text[])`, friends); err != nil {
 		return viewer, err
 	}
+	viewer.FriendsOfFriends = make(map[string]bool, len(friendships))
+	viewer.MutualFriends = make(map[string]int, len(friendships))
 	for _, friendship := range friendships {
 		if viewer.Friends[friendship.UserLowID] {
 			viewer.FriendsOfFriends[friendship.UserHighID] = true
