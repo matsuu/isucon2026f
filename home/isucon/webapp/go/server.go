@@ -39,6 +39,9 @@ func NewServer(config *Config) *echo.Echo {
 		panic("failed to open database: " + err.Error())
 	}
 	db.SetMaxOpenConns(30)
+	// pgx の prepared statement キャッシュは接続単位。
+	// アイドル接続を減らすとキャッシュが失われやすいため、MaxOpenConns と揃える。
+	db.SetMaxIdleConns(30)
 	err = db.Ping()
 	if err != nil {
 		panic("failed to ping database: " + err.Error())
