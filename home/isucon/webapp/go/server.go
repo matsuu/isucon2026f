@@ -1,6 +1,7 @@
 package isureal
 
 import (
+	"context"
 	"os"
 
 	"github.com/jmoiron/sqlx"
@@ -11,9 +12,10 @@ import (
 )
 
 type HandlerContext struct {
-	DB     *sqlx.DB
-	Config *Config
-	IPBans *IPBanList
+	DB            *sqlx.DB
+	Config        *Config
+	IPBans        *IPBanList
+	Notifications *NotificationHub
 }
 
 func NewServer(config *Config) *echo.Echo {
@@ -28,6 +30,7 @@ func NewServer(config *Config) *echo.Echo {
 	}
 	startImageSignatureCacheCleanup()
 	e := echo.New()
+	e.JSONSerializer = JSONSerializer{}
 	e.IPExtractor = extractClientIP
 
 	e.Use(ActionLogMiddleware(config.LogLevel, os.Stdout))
@@ -47,10 +50,14 @@ func NewServer(config *Config) *echo.Echo {
 		panic("failed to ping database: " + err.Error())
 	}
 
+	notificationHub := NewNotificationHub()
+	startNotificationListener(context.Background(), config.DatabaseDSN(), notificationHub)
+
 	handlerContext := &HandlerContext{
-		DB:     db,
-		Config: config,
-		IPBans: &IPBanList{},
+		DB:            db,
+		Config:        config,
+		IPBans:        &IPBanList{},
+		Notifications: notificationHub,
 	}
 	e.Use(IPBanMiddleware(handlerContext))
 

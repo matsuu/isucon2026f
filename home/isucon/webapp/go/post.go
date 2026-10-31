@@ -167,6 +167,88 @@ func loadViewerContext(ctx context.Context, db sqlx.QueryerContext, viewerID str
 	return viewer, nil
 }
 
+type postViewerRow struct {
+	User
+	HasPostedToday  bool `db:"has_posted_today"`
+	Blocked         bool `db:"blocked"`
+	Friend          bool `db:"friend"`
+	FriendOfFriends bool `db:"friend_of_friends"`
+}
+
+// loadPostViewerContext は1投稿の可視性判定に必要な関係だけを取得する。
+// フィード用の loadViewerContext と違い、友達全件や友達の友達全件は読まない。
+func loadPostViewerContext(ctx context.Context, db sqlx.QueryerContext, viewerID, authorID, visibility string) (viewerContext, error) {
+	viewer := viewerContext{}
+	needFriend := viewerID != authorID && visibility != "public"
+	needFOF := viewerID != authorID && visibility == "friends_of_friends"
+
+	cte := ""
+	friendExpr := `false`
+	fofExpr := `false`
+	if needFOF {
+		cte = `WITH viewer_friends AS (
+    SELECT CASE WHEN user_low_id = $1 THEN user_high_id ELSE user_low_id END AS friend_id
+    FROM friendships
+    WHERE user_low_id = $1 OR user_high_id = $1
+  ),
+  author_friends AS (
+    SELECT CASE WHEN user_low_id = $2 THEN user_high_id ELSE user_low_id END AS friend_id
+    FROM friendships
+    WHERE user_low_id = $2 OR user_high_id = $2
+  )
+`
+		fofExpr = `EXISTS (
+      SELECT 1 FROM viewer_friends vf
+      JOIN author_friends af ON af.friend_id = vf.friend_id
+    )`
+	}
+	if needFriend {
+		friendExpr = `EXISTS (
+      SELECT 1 FROM friendships f
+      WHERE f.user_low_id = LEAST($1, $2) AND f.user_high_id = GREATEST($1, $2)
+    )`
+	}
+
+	query := cte + `
+  SELECT ` + strings.Join(userColumns, ", ") + `,
+         EXISTS(
+           SELECT 1 FROM posts p
+           JOIN posting_windows posted ON posted.id = p.posting_window_id
+           JOIN posting_windows current ON current.region = u.region AND current.ended_at IS NULL
+                                       AND current.local_date = posted.local_date
+           WHERE p.author_id = u.id AND p.deleted_at IS NULL
+         ) AS has_posted_today,
+         EXISTS(
+           SELECT 1 FROM block_relations b
+           WHERE (b.blocker_id = $1 AND b.blocked_id = $2)
+              OR (b.blocker_id = $2 AND b.blocked_id = $1)
+         ) AS blocked,
+         ` + friendExpr + ` AS friend,
+         ` + fofExpr + ` AS friend_of_friends
+  FROM users u
+  WHERE u.id = $1 AND u.status = 'active'
+ `
+	var row postViewerRow
+	if err := sqlx.GetContext(ctx, db, &row, query, viewerID, authorID); err != nil {
+		return viewer, err
+	}
+	viewer.User = row.User
+	viewer.HasPostedToday = row.HasPostedToday
+	if err := viewer.setImageKey(); err != nil {
+		return viewer, err
+	}
+	if row.Blocked {
+		viewer.Blocked = map[string]bool{authorID: true}
+	}
+	if row.Friend {
+		viewer.Friends = map[string]bool{authorID: true}
+	}
+	if row.FriendOfFriends {
+		viewer.FriendsOfFriends = map[string]bool{authorID: true}
+	}
+	return viewer, nil
+}
+
 func (viewer viewerContext) canView(post Post) bool {
 	if post.AuthorID == viewer.ID {
 		return true
@@ -187,21 +269,29 @@ func (viewer viewerContext) canView(post Post) bool {
 }
 
 func canViewPost(ctx context.Context, db sqlx.QueryerContext, viewerID, postID string) (bool, error) {
+	_, allowed, err := canViewPostWithViewer(ctx, db, viewerID, postID)
+	return allowed, err
+}
+
+// canViewPostWithViewer は判定に使った viewer を返す。
+// 作成レスポンスのために同じユーザーを再取得しないで済む。
+func canViewPostWithViewer(ctx context.Context, db sqlx.QueryerContext, viewerID, postID string) (viewerContext, bool, error) {
+	var viewer viewerContext
 	post, err := getPostWithAuthor(ctx, db, postID)
 	if errors.Is(err, sql.ErrNoRows) {
-		return false, nil
+		return viewer, false, nil
 	}
 	if err != nil {
-		return false, err
+		return viewer, false, err
 	}
-	viewer, err := loadViewerContext(ctx, db, viewerID)
+	viewer, err = loadPostViewerContext(ctx, db, viewerID, post.AuthorID, post.Visibility)
 	if errors.Is(err, sql.ErrNoRows) {
-		return false, nil
+		return viewer, false, nil
 	}
 	if err != nil {
-		return false, err
+		return viewer, false, err
 	}
-	return viewer.canView(post.Post), nil
+	return viewer, viewer.canView(post.Post), nil
 }
 
 func getFriendIDs(ctx context.Context, db sqlx.QueryerContext, userID string) ([]string, error) {

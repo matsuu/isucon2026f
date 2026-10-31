@@ -187,6 +187,8 @@ CREATE TABLE posts (
   posting_window_local_date date
 );
 CREATE INDEX posts_author_id ON posts(author_id);
+CREATE INDEX posts_author_posted_at_id_idx ON posts(author_id, posted_at DESC, id DESC) WHERE deleted_at IS NULL;
+CREATE INDEX posts_visibility_posted_at_id_idx ON posts(visibility, posted_at DESC, id DESC) WHERE deleted_at IS NULL;
 CREATE INDEX posts_posting_window_id ON posts(posting_window_id);
 CREATE INDEX posts_id_idx ON posts(id) WHERE deleted_at IS NULL;
 CREATE INDEX posts_image_id_author_id_idx ON posts(image_id, author_id) WHERE deleted_at IS NULL;
@@ -217,6 +219,7 @@ CREATE TABLE realmojis (
 );
 CREATE UNIQUE INDEX realmojis_one_active ON realmojis(post_id,reactor_id) WHERE replaced_at IS NULL AND deleted_at IS NULL;
 CREATE INDEX realmojis_post_id ON realmojis(post_id);
+CREATE INDEX realmojis_post_id_created_at_id_idx ON realmojis(post_id, created_at DESC, id DESC) WHERE replaced_at IS NULL AND deleted_at IS NULL;
 CREATE INDEX realmojis_image_id_reactor_id_idx ON realmojis(image_id, reactor_id) WHERE replaced_at IS NULL AND deleted_at IS NULL;
 
 CREATE TABLE comments (
@@ -228,6 +231,7 @@ CREATE TABLE comments (
   deleted_at timestamptz
 );
 CREATE INDEX comments_post_id ON comments(post_id);
+CREATE INDEX comments_post_id_created_at_id_idx ON comments(post_id, created_at, id) WHERE deleted_at IS NULL;
 
 CREATE TABLE notifications (
   id varchar(36) NOT NULL,
@@ -238,6 +242,26 @@ CREATE TABLE notifications (
   created_at timestamptz NOT NULL,
   PRIMARY KEY (user_id, posting_window_id)
 );
+CREATE INDEX notifications_user_created_at_id_idx ON notifications(user_id, created_at, id);
+
+-- 一括INSERT後に1回だけ通知する。SSEはアプリ全体で1本のLISTEN接続を共有する。
+CREATE OR REPLACE FUNCTION isureal_notify_notifications() RETURNS trigger AS $$
+DECLARE
+  window_id text;
+BEGIN
+  SELECT posting_window_id INTO window_id FROM new_rows LIMIT 1;
+  IF window_id IS NOT NULL THEN
+    PERFORM pg_notify('isureal_notifications', window_id);
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER notifications_notify
+AFTER INSERT ON notifications
+REFERENCING NEW TABLE AS new_rows
+FOR EACH STATEMENT
+EXECUTE FUNCTION isureal_notify_notifications();
 
 CREATE TABLE ip_bans (
   ip text PRIMARY KEY,

@@ -25,6 +25,18 @@ func getFriendRequest(ctx context.Context, db sqlx.QueryerContext, id string) (F
 	return request, err
 }
 
+// areFriends は特定の2ユーザー間だけをEXISTSで判定する。
+// 友達全件を取得してGo側で探すより、人気ユーザーでも転送量とCPUを抑えられる。
+func areFriends(ctx context.Context, db sqlx.QueryerContext, a, b string) (bool, error) {
+	var exists bool
+	err := sqlx.GetContext(ctx, db, &exists, `
+  SELECT EXISTS(
+    SELECT 1 FROM friendships
+    WHERE user_low_id = $1 AND user_high_id = $2
+  )`, min(a, b), max(a, b))
+	return exists, err
+}
+
 func beginRelationshipTx(ctx context.Context, db *sqlx.DB, actor, target string) (*sqlx.Tx, error) {
 	if actor == target || target == "" {
 		return nil, NewAPIError(http.StatusBadRequest, "invalid_relationship")

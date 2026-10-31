@@ -2,12 +2,12 @@ package isureal
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
+	json "github.com/goccy/go-json"
 	"github.com/labstack/echo/v5"
 )
 
@@ -34,7 +34,15 @@ func getNotificationsHandler(h *HandlerContext) echo.HandlerFunc {
 		if err := controller.Flush(); err != nil {
 			return nil
 		}
-		ticker := time.NewTicker(time.Second)
+		// LISTEN/NOTIFYのイベントで起床する。LISTEN接続はアプリ全体で1本。
+		// 30秒tickerはLISTEN切断時のフォールバック。
+		var events <-chan struct{}
+		if h.Notifications != nil {
+			var unsubscribe func()
+			events, unsubscribe = h.Notifications.Subscribe()
+			defer unsubscribe()
+		}
+		ticker := time.NewTicker(30 * time.Second)
 		defer ticker.Stop()
 		for {
 			var row struct {
@@ -75,6 +83,7 @@ func getNotificationsHandler(h *HandlerContext) echo.HandlerFunc {
 				select {
 				case <-ctx.Done():
 					return nil
+				case <-events:
 				case <-ticker.C:
 				}
 				continue

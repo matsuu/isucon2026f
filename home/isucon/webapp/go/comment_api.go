@@ -64,7 +64,7 @@ func createCommentHandler(h *HandlerContext) echo.HandlerFunc {
 		if len(lockedIDs) != len(lockIDs) {
 			return NewAPIError(http.StatusForbidden, "interaction_forbidden")
 		}
-		allowed, err := canComment(ctx, tx, actor, post.ID)
+		viewer, allowed, err := canCommentWithViewer(ctx, tx, actor, post.ID)
 		if err != nil {
 			return err
 		}
@@ -72,21 +72,15 @@ func createCommentHandler(h *HandlerContext) echo.HandlerFunc {
 			return NewAPIError(http.StatusForbidden, "interaction_forbidden")
 		}
 		id := uuid.NewString()
-		if _, err := tx.ExecContext(ctx, `INSERT INTO comments(id,post_id,author_id,body,created_at) VALUES($1,$2,$3,$4,clock_timestamp())`, id, post.ID, actor, input.Body); err != nil {
+		var createdAt time.Time
+		if err := tx.GetContext(ctx, &createdAt, `INSERT INTO comments(id,post_id,author_id,body,created_at) VALUES($1,$2,$3,$4,clock_timestamp()) RETURNING created_at`, id, post.ID, actor, input.Body); err != nil {
 			return err
 		}
-		comment, err := getComment(ctx, tx, id)
-		if err != nil {
-			return err
-		}
-		user, err := getUser(ctx, tx, actor)
-		if err != nil {
-			return err
-		}
+		comment := Comment{ID: id, PostID: post.ID, AuthorID: actor, Body: input.Body, CreatedAt: createdAt}
 		if err := tx.Commit(); err != nil {
 			return err
 		}
-		return c.JSON(http.StatusCreated, newCommentResponse(comment, user))
+		return c.JSON(http.StatusCreated, newCommentResponse(comment, viewer.User))
 	}
 }
 

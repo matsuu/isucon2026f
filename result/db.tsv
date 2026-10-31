@@ -1,5 +1,6 @@
 cnt	sum	min	avg	max	sumrows	avgrows	db	query
-8527	28636.78911899996	0.032584	3.358366262343151	33.594111000000005	8527	1	isureal	"SELECT u.secret_key_hash, i.media_type, (
+1157	73465.85443200001	5.430837	63.49684912013835	363.374896	1157	1	isureal	INSERT INTO image_objects (id, owner_user_id, data, media_type, created_at) VALUES ($1, $2, $3, $5, $4)
+8022	31365.071640000006	0.069779	3.9098817801047105	57.349095000000005	8022	1	isureal	"SELECT u.id AS owner_user_id, u.secret_key_hash, i.media_type, (
      COALESCE(u.profile_image_id = i.id, $2)
      OR EXISTS (
        SELECT $3 FROM posts p
@@ -16,20 +17,7 @@ cnt	sum	min	avg	max	sumrows	avgrows	db	query
    JOIN image_objects i ON i.id = l.id AND i.created_at = l.created_at
    JOIN users u ON u.id = i.owner_user_id
    WHERE l.id = $1 AND u.status = $6"
-2695	13853.619330000014	0.078067	5.1404895473098335	70.66710800000001	17264	6	isureal	"SELECT p.id, p.author_id, p.posting_window_id, p.image_id, p.caption, p.visibility,
-  p.location_kind, p.latitude, p.longitude, p.locality, p.posted_at,
-  w.on_time_deadline, w.ended_at AS window_ended_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
-  FROM posts p
-  JOIN posting_windows w ON w.id = p.posting_window_id
-  JOIN users u ON u.id = p.author_id AND u.status = $6
-  WHERE p.deleted_at IS NULL 
-  AND p.author_id = $1 AND w.local_date >= $2 AND w.local_date < $3
-  AND ($4::timestamptz IS NULL OR (p.posted_at, p.id) < ($4, $5))
-  ORDER BY p.posted_at DESC, p.id DESC LIMIT $7"
-366	9565.520228000005	4.775797	26.135301169398904	135.166067	366	1	isureal	INSERT INTO image_objects (id, owner_user_id, data, media_type, created_at) VALUES ($1, $2, $3, $5, $4)
-18	8283.035806	3.3060009999999997	460.16865588888885	2416.0791019999997	29619	1645	isureal	"INSERT INTO notifications (id, user_id, posting_window_id, created_at)
-   SELECT gen_random_uuid()::text, id, $2, $3 FROM users WHERE region = $1 AND status = $4"
-467	5356.401934000003	0.113356	11.469811421841541	248.61271	467	1	isureal	"SELECT i.data
+1389	7766.458137999998	0.121514	5.5914025471562265	209.29008800000003	1389	1	isureal	"SELECT i.data
    FROM image_object_locations l
    JOIN image_objects i ON i.id = l.id AND i.created_at = l.created_at
    JOIN users u ON u.id = i.owner_user_id AND u.status = $2
@@ -46,7 +34,29 @@ cnt	sum	min	avg	max	sumrows	avgrows	db	query
        WHERE r.image_id = i.id AND r.reactor_id = u.id AND r.replaced_at IS NULL AND r.deleted_at IS NULL
      )
    )"
-650	5063.501640999999	0.007241	7.7900025246153906	121.036727	9020	13	isureal	"WITH candidates AS (
+3361	5697.310708999984	0.009801	1.6951236861053225	27.173597	18067	5	isureal	"SELECT p.id, p.author_id, p.posting_window_id, p.image_id, p.caption, p.visibility,
+  p.location_kind, p.latitude, p.longitude, p.locality, p.posted_at,
+  w.on_time_deadline, w.ended_at AS window_ended_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+  FROM posts p
+  JOIN posting_windows w ON w.id = p.posting_window_id
+  JOIN users u ON u.id = p.author_id AND u.status = $6
+  WHERE p.deleted_at IS NULL 
+  AND p.author_id = $1 AND p.posting_window_local_date >= $2 AND p.posting_window_local_date < $3
+  AND ($4::timestamptz IS NULL OR (p.posted_at, p.id) < ($4, $5))
+  ORDER BY p.posted_at DESC, p.id DESC LIMIT $7"
+18	5010.92722	3.622497	278.38484555555556	1611.215229	30195	1677	isureal	"INSERT INTO notifications (id, user_id, posting_window_id, created_at)
+   SELECT gen_random_uuid()::text, id, $2, $3 FROM users WHERE region = $1 AND status = $4"
+171	4666.924305000001	0.510517	27.291955000000012	224.713417	21069	123	isureal	"SELECT p.id, p.author_id, p.posting_window_id, p.image_id, p.caption, p.visibility,
+  p.location_kind, p.latitude, p.longitude, p.locality, p.posted_at,
+  w.on_time_deadline, w.ended_at AS window_ended_at
+   FROM posts p
+   JOIN posting_windows w ON w.id = p.posting_window_id
+   WHERE p.author_id = $1 AND p.deleted_at IS NULL
+   ORDER BY p.posted_at, p.id"
+1157	4018.054799000002	0.16186099999999998	3.4728217796024237	54.814868000000004	1157	1	isureal	"INSERT INTO posts (id, author_id, posting_window_id, posting_window_local_date, image_id, caption, visibility,
+                      location_kind, latitude, longitude, locality, posted_at)
+   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)"
+681	3543.6405499999983	0.007175	5.203583773861972	511.90076100000005	6418	9	isureal	"WITH candidates AS (
   SELECT p.id, p.author_id, p.posting_window_id, p.image_id, p.caption, p.visibility,
          p.location_kind, p.latitude, p.longitude, p.locality, p.posted_at,
          w.on_time_deadline, w.ended_at AS window_ended_at,
@@ -99,34 +109,34 @@ FROM scored
 WHERE ($8::bigint IS NULL OR (score, posted_at, id) < ($8, $9, $10))
 ORDER BY score DESC, posted_at DESC, id DESC
 LIMIT $26"
-214	2252.352143000001	0.418729	10.52501001401869	70.116288	26038	121	isureal	"SELECT p.id, p.author_id, p.posting_window_id, p.image_id, p.caption, p.visibility,
-  p.location_kind, p.latitude, p.longitude, p.locality, p.posted_at,
-  w.on_time_deadline, w.ended_at AS window_ended_at
-   FROM posts p
-   JOIN posting_windows w ON w.id = p.posting_window_id
-   WHERE p.author_id = $1 AND p.deleted_at IS NULL
-   ORDER BY p.posted_at, p.id"
-1	2117.5890590000004	2117.5890590000004	2117.5890590000004	2117.5890590000004	396	396	isureal	DELETE FROM posts WHERE created_at > (SELECT created_at FROM initial_data_boundary)
-3525	1724.9541040000036	0.013182000000000001	0.48934868198581677	31.345857999999996	529477	150	isureal	SELECT user_low_id, user_high_id FROM friendships WHERE user_low_id = ANY($1::text[]) OR user_high_id = ANY($1::text[])
-1	1417.331808	1417.331808	1417.331808	1417.331808	29635	29635	isureal	DELETE FROM notifications WHERE created_at > (SELECT created_at FROM initial_data_boundary)
-1	1376.501303	1376.501303	1376.501303	1376.501303	132	132	isureal	DELETE FROM realmojis WHERE created_at > (SELECT created_at FROM initial_data_boundary)
-118	1013.7561050000002	0.28443199999999996	8.591153432203386	24.767836000000003	3130	26	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+1	1554.72741	1554.72741	1554.72741	1554.72741	0	0	isureal	DELETE FROM posts WHERE created_at > (SELECT created_at FROM initial_data_boundary)
+1585	1500.9587109999995	0.017875000000000002	0.9469771047318607	18.367051999999997	1585	1	isureal	INSERT INTO image_object_locations (id, created_at) VALUES ($1,$2)
+99	1259.747715	0.813337	12.724724393939391	44.291487	2538	25	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
          u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
   FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $16
   WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) ORDER BY r.created_at DESC, r.id DESC"
-366	961.7147549999997	0.17633	2.6276359426229527	9.705302000000001	366	1	isureal	"INSERT INTO posts (id, author_id, posting_window_id, posting_window_local_date, image_id, caption, visibility,
-                      location_kind, latitude, longitude, locality, posted_at)
-   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)"
-1	798.914636	798.914636	798.914636	798.914636	591	591	isureal	DELETE FROM image_object_locations WHERE created_at > (SELECT created_at FROM initial_data_boundary)
-89	797.7382980000001	0.357792	8.963351662921344	26.105156	2439	27	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+613	1100.1144679999989	0.017901	1.7946402414355644	14.429492	728	1	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
          u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
-  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $17
-  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) ORDER BY r.created_at DESC, r.id DESC"
-68	695.484508	0.41268	10.227713352941175	47.268485999999996	1945	28	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $3
+  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2) ORDER BY r.created_at DESC, r.id DESC"
+10	1036.0109889999997	0.025653	103.60109889999998	591.700425	10	1	isureal	UPDATE users SET account_type=$2, updated_at=clock_timestamp() WHERE id=$1 AND status=$3 AND account_type=$4
+99	1009.324163	0.35252500000000003	10.195193565656567	21.281256	1227	12	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $16
+  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) ORDER BY c.created_at, c.id"
+2835	971.1323829999991	0.014574	0.342551105114638	30.340739	302463	106	isureal	SELECT user_low_id, user_high_id FROM friendships WHERE user_low_id = ANY($1::text[]) OR user_high_id = ANY($1::text[])
+58	929.03448	5.494556	16.01783586206897	39.49275	1660	28	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
          u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
   FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $18
   WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) ORDER BY r.created_at DESC, r.id DESC"
-1098	578.1381769999998	0.0041389999999999995	0.5265375018214934	33.595446	4089	3	isureal	"WITH candidates AS (
+532	896.1007800000001	0.021999	1.6843999624060153	47.918020999999996	943	1	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
+  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $4
+  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3) ORDER BY r.created_at DESC, r.id DESC"
+53	830.7835970000001	6.161691	15.675162207547173	45.358283	1634	30	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
+  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $19
+  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) ORDER BY r.created_at DESC, r.id DESC"
+2082	821.3745620000018	0.004233	0.39451227761767577	67.474014	4459	2	isureal	"WITH candidates AS (
   SELECT p.id, p.author_id, p.posting_window_id, p.image_id, p.caption, p.visibility,
          p.location_kind, p.latitude, p.longitude, p.locality, p.posted_at,
          w.on_time_deadline, w.ended_at AS window_ended_at,
@@ -140,12 +150,20 @@ FROM candidates
 WHERE ($6::timestamptz IS NULL OR (posted_at, id) < ($6, $7))
 ORDER BY posted_at DESC, id DESC
 LIMIT $17"
-1	559.967192	559.967192	559.967192	559.967192	301	301	isureal	DELETE FROM comments WHERE created_at > (SELECT created_at FROM initial_data_boundary)
-33	534.512294	0.881981	16.197342242424245	41.739760000000004	1526	46	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+70	755.7720079999999	0.33606199999999997	10.796742971428571	31.923739	1479	21	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
          u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
-  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $29
-  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28) ORDER BY r.created_at DESC, r.id DESC"
-4056	531.2156299999998	0.021675000000000003	0.13097032297830383	11.247758	4056	1	isureal	"SELECT id, username, secret_key_hash, display_name, bio, profile_image_id, region, account_type, status,
+  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $14
+  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) ORDER BY r.created_at DESC, r.id DESC"
+63	745.3121730000001	4.477416	11.830351952380951	29.004279	1737	27	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
+  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $17
+  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) ORDER BY r.created_at DESC, r.id DESC"
+237	713.0505890000002	0.7149749999999999	3.0086522742616033	10.266926	237	1	isureal	INSERT INTO realmojis(id,post_id,reactor_id,image_id,reaction_type,created_at) VALUES($1,$2,$3,$4,$5,clock_timestamp()) RETURNING created_at
+71	712.051834	3.2339249999999997	10.028899070422536	18.681908	1628	22	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
+  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $15
+  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) ORDER BY r.created_at DESC, r.id DESC"
+4150	698.0337709999983	0.014521999999999998	0.16820090867469872	37.490437	4150	1	isureal	"SELECT id, username, secret_key_hash, display_name, bio, profile_image_id, region, account_type, status,
          EXISTS(
            SELECT $2 FROM posts p
            JOIN posting_windows posted ON posted.id = p.posting_window_id
@@ -155,30 +173,65 @@ LIMIT $17"
          ) AS has_posted_today
   FROM users u
   WHERE u.id = $1 AND u.status = $3"
-67	526.202903	0.35855000000000004	7.8537746716417915	23.659813	1606	23	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+339	686.4865280000008	0.031152000000000003	2.0250340058997036	16.490608	1167	3	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
          u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
-  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $15
-  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) ORDER BY r.created_at DESC, r.id DESC"
-353	524.2679319999997	0.017163	1.4851782776203963	7.8226189999999995	711	2	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $5
+  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4) ORDER BY r.created_at DESC, r.id DESC"
+3530	685.9487059999999	0.014950999999999999	0.19431974674220973	424.512336	7058	1	isureal	SELECT id FROM users WHERE id = ANY($1::text[]) AND status=$2 ORDER BY id FOR SHARE
+31	672.286404	9.436467	21.68665819354839	63.988307999999996	1485	47	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
          u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
-  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $3
-  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2) ORDER BY r.created_at DESC, r.id DESC"
-31	473.9918069999999	4.12437	15.290058290322582	38.350013000000004	1380	44	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $29
+  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28) ORDER BY r.created_at DESC, r.id DESC"
+58	654.8953020000001	4.461291	11.291298310344823	37.371019	763	13	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $18
+  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) ORDER BY c.created_at, c.id"
+53	626.3510660000001	3.91941	11.817944641509436	23.678844	816	15	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $19
+  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) ORDER BY c.created_at, c.id"
+613	625.5989010000002	0.016214	1.0205528564437196	6.968374	293	0	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $3
+  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2) ORDER BY c.created_at, c.id"
+20905	600.5414449999989	0.007645999999999999	0.028727167902415723	5.551343999999999	20900	0	isureal	"SELECT s.user_id, s.token_hash, s.created_at, u.region
+		FROM login_sessions s JOIN users u ON u.id = s.user_id
+		WHERE s.token_hash = $1
+		  AND s.active = $2 AND u.status = $3"
+31	580.372467	9.297474999999999	18.721692483870967	45.39944	736	23	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $29
+  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28) ORDER BY c.created_at, c.id"
+71	576.102203	1.810233	8.114115535211267	21.539619	795	11	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $15
+  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) ORDER BY c.created_at, c.id"
+63	570.7730099999999	2.311406	9.059889047619048	19.869407	829	13	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $17
+  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) ORDER BY c.created_at, c.id"
+70	569.40747	0.19312100000000001	8.13439242857143	20.357812	763	10	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $14
+  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) ORDER BY c.created_at, c.id"
+532	559.3679250000001	0.021963	1.0514434680451126	22.864455999999997	541	1	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $4
+  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3) ORDER BY c.created_at, c.id"
+1518	538.8635880000005	0.056548	0.35498260079051314	10.558647	1518	1	isureal	"SELECT w.id, w.region, w.local_date, w.starts_at, w.on_time_deadline, w.ended_at,
+          count(p.id) FILTER (WHERE p.deleted_at IS NULL) AS active,
+          count(p.id) FILTER (WHERE p.deleted_at IS NOT NULL) AS deleted
+   FROM users u JOIN posting_windows w ON w.region = u.region AND w.ended_at IS NULL
+   LEFT JOIN posting_windows posted_window ON posted_window.local_date = w.local_date
+   LEFT JOIN posts p ON p.author_id = u.id AND p.posting_window_id = posted_window.id
+   WHERE u.id = $1
+   GROUP BY w.id"
+148	524.0986979999999	0.035858999999999995	3.541207418918919	22.481056	824	5	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
+  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $6
+  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5) ORDER BY r.created_at DESC, r.id DESC"
+339	520.4653429999994	0.025109	1.5352959970501485	8.223756999999999	731	2	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $5
+  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4) ORDER BY c.created_at, c.id"
+428	502.6495259999999	0.148038	1.174414780373832	35.344263	428	1	isureal	INSERT INTO image_objects(id,owner_user_id,data,media_type) VALUES ($1,$2,$3,$4) RETURNING created_at
+267	483.30640299999976	0.136285	1.81013634082397	13.61211	267	1	isureal	INSERT INTO comments(id,post_id,author_id,body,created_at) VALUES($1,$2,$3,$4,clock_timestamp()) RETURNING created_at
+26	473.88116700000006	8.809169	18.22619873076923	32.335016	1177	45	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
          u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
   FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $28
   WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27) ORDER BY r.created_at DESC, r.id DESC"
-294	447.1533820000004	0.027402999999999997	1.5209298707482999	10.479602	1152	3	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
-         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
-  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $4
-  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3) ORDER BY r.created_at DESC, r.id DESC"
-118	445.27826900000025	0.17450500000000002	3.7735446525423724	10.596886999999999	1545	13	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
-  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $16
-  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) ORDER BY c.created_at, c.id"
-57	425.88599099999993	0.19942700000000002	7.47168405263158	19.555104	1235	21	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
-         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
-  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $14
-  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) ORDER BY r.created_at DESC, r.id DESC"
-9067	418.3290210000007	0.01575	0.04613753402448459	2.2346190000000004	9064	0	isureal	"SELECT u.region AS user_region, latest.id, latest.posting_window_id, latest.region, latest.created_at
+4404	451.128209000001	0.011082	0.10243601475930976	10.594159000000001	4401	0	isureal	"SELECT u.region AS user_region, latest.id, latest.posting_window_id, latest.region, latest.created_at
    FROM users u
    LEFT JOIN LATERAL (
      SELECT n.id, n.posting_window_id, w.region, n.created_at
@@ -191,44 +244,60 @@ LIMIT $17"
      LIMIT $3
    ) latest ON $4
    WHERE u.id = $1 AND u.status = $5"
-507	415.0399200000002	0.020582	0.8186191715976332	12.517241	507	1	isureal	INSERT INTO image_object_locations (id, created_at) VALUES ($1,$2)
-200	366.533236	0.026185	1.8326661800000006	10.087816	1022	5	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
-         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
-  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $5
-  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4) ORDER BY r.created_at DESC, r.id DESC"
-24	360.4605020000001	0.572177	15.019187583333334	38.830552999999995	1115	46	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+970	447.61132899999984	0.042254	0.46145497835051563	11.369186	1037	1	isureal	SELECT id, username, secret_key_hash, display_name, bio, profile_image_id, region, account_type, status FROM users WHERE status=$5 AND id<>$1 AND ($2=$6 OR (username,id)>($2,$3)) AND (username ILIKE $4 ESCAPE $7 OR display_name ILIKE $4 ESCAPE $8) ORDER BY username, id LIMIT $9
+1216	435.8636279999993	0.01013	0.35844048355263186	9.550578	1216	1	isureal	"SELECT count(*)
+   FROM posts
+   WHERE author_id = $1 AND posting_window_local_date = $2 AND deleted_at IS NOT NULL"
+20	425.637115	0.580502	21.28185575	34.081436	840	42	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
          u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
   FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $27
   WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26) ORDER BY r.created_at DESC, r.id DESC"
-26	344.20724200000006	0.591556	13.238740076923076	24.365949	1115	42	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
-         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
-  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $26
-  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25) ORDER BY r.created_at DESC, r.id DESC"
-89	343.6651039999999	0.236457	3.861405662921349	11.173655	1212	13	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
-  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $17
-  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) ORDER BY c.created_at, c.id"
-395	339.09122900000017	0.009066	0.8584588075949369	7.8232349999999995	617	1	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
-         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
-  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $2
-  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1) ORDER BY r.created_at DESC, r.id DESC"
-33	329.23179799999997	4.036637	9.97672115151515	34.781246	989	29	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
-         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
-  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $19
-  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) ORDER BY r.created_at DESC, r.id DESC"
-44	326.21243299999986	3.634631	7.413918931818181	18.685031000000002	885	20	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
-         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
-  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $13
-  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) ORDER BY r.created_at DESC, r.id DESC"
-11727	323.8975030000005	0.007291	0.0276198092436258	6.923598	11722	0	isureal	"SELECT s.user_id, s.token_hash, s.created_at, u.region
-		FROM login_sessions s JOIN users u ON u.id = s.user_id
-		WHERE s.token_hash = $1
-		  AND s.active = $2 AND u.status = $3"
-99	319.4813120000001	0.7479020000000001	3.2270839595959586	9.290441999999999	99	1	isureal	INSERT INTO realmojis(id,post_id,reactor_id,image_id,reaction_type,created_at) VALUES($1,$2,$3,$4,$5,clock_timestamp())
-20	317.482315	7.109973	15.874115750000003	31.418895000000003	959	47	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+20	413.562459	10.627225000000001	20.678122950000002	41.410154999999996	998	49	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
          u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
   FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $30
   WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29) ORDER BY r.created_at DESC, r.id DESC"
-604	288.72912899999983	0.109689	0.4780283592715232	12.736483999999999	2394	3	isureal	"WITH candidates AS (
+1960	408.8517820000014	0.06263200000000001	0.2085978479591832	11.779719	1960	1	isureal	INSERT INTO friend_requests (id, requester_id, recipient_id, status, created_at, updated_at) VALUES ($1,$2,$3,$4,clock_timestamp(),clock_timestamp())
+42	396.107967	2.174716	9.431142071428573	23.370585	809	19	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
+  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $13
+  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) ORDER BY r.created_at DESC, r.id DESC"
+27	385.2482750000001	7.211445	14.26845462962963	29.535342999999997	866	32	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
+  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $20
+  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) ORDER BY r.created_at DESC, r.id DESC"
+26	379.628022	4.957682	14.60107776923077	30.717087	581	22	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $28
+  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27) ORDER BY c.created_at, c.id"
+148	360.8117030000002	0.028832	2.437916912162162	10.237432	463	3	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $6
+  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5) ORDER BY c.created_at, c.id"
+20	342.046957	2.5279450000000003	17.102347849999997	28.555345	434	21	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $27
+  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26) ORDER BY c.created_at, c.id"
+350	336.5179070000001	0.008229	0.9614797342857146	11.253601999999999	466	1	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
+  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $2
+  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1) ORDER BY r.created_at DESC, r.id DESC"
+42	321.11060699999996	2.577734	7.645490642857144	17.415538	386	9	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $13
+  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) ORDER BY c.created_at, c.id"
+20	313.798317	7.175929999999999	15.68991585	27.982073	493	24	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $30
+  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29) ORDER BY c.created_at, c.id"
+27	311.7967069999999	4.597377	11.548026185185185	20.354339	427	15	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $20
+  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) ORDER BY c.created_at, c.id"
+2687	304.156075	0.036105	0.11319541310011186	5.069409	2687	1	isureal	"INSERT INTO login_sessions (id, user_id, token_hash)
+  VALUES ($1, $2, $3)"
+16	297.82390999999996	9.871684	18.613994375	40.949605	664	41	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
+  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $26
+  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25) ORDER BY r.created_at DESC, r.id DESC"
+14	280.756446	8.893383	20.054031857142856	35.535512999999995	555	39	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
+  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $25
+  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24) ORDER BY r.created_at DESC, r.id DESC"
+665	244.40428599999993	0.022816999999999997	0.3675252421052632	5.549442	3512	5	isureal	"WITH candidates AS (
   SELECT p.id, p.author_id, p.posting_window_id, p.image_id, p.caption, p.visibility,
          p.location_kind, p.latitude, p.longitude, p.locality, p.posted_at,
          w.on_time_deadline, w.ended_at AS window_ended_at,
@@ -242,177 +311,198 @@ FROM candidates
 WHERE ($6::timestamptz IS NULL OR (posted_at, id) < ($6, $7))
 ORDER BY posted_at DESC, id DESC
 LIMIT $15"
-68	284.65176400000007	0.22047	4.186055352941176	14.500186999999999	972	14	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
-  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $18
-  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) ORDER BY c.created_at, c.id"
-14	272.87	9.454297	19.490714285714287	41.223382	1124	80	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+993	234.38937500000011	0.061207	0.2360416666666664	5.699465	993	1	isureal	INSERT INTO friendships (id, user_low_id, user_high_id, source_request_id) VALUES ($1,$2,$3,$4)
+350	232.48588199999995	0.007865	0.664245377142857	13.752106	261	0	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $2
+  WHERE c.deleted_at IS NULL AND c.post_id IN ($1) ORDER BY c.created_at, c.id"
+6718	231.05519300000014	0.001803	0.03439344938969929	191.70050899999998	6718	1	isureal	SELECT pg_advisory_xact_lock(hashtextextended($1, $2))
+9	228.747947	11.952328	25.416438555555555	40.925525	908	100	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
          u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
   FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $31
   WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30) ORDER BY r.created_at DESC, r.id DESC"
-126	249.9322719999999	0.030188999999999997	1.9835894603174606	18.848035999999997	662	5	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
-         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
-  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $6
-  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5) ORDER BY r.created_at DESC, r.id DESC"
-26	246.805752	4.177217000000001	9.492528923076922	17.805156999999998	913	35	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
-         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
-  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $20
-  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) ORDER BY r.created_at DESC, r.id DESC"
-157	239.14480200000008	0.086185	1.5232152993630572	9.14995	157	1	isureal	INSERT INTO comments(id,post_id,author_id,body,created_at) VALUES($1,$2,$3,$4,clock_timestamp())
-2728	234.60503700000018	0.037169	0.08599891385630512	2.530824	2728	1	isureal	"INSERT INTO login_sessions (id, user_id, token_hash)
-  VALUES ($1, $2, $3)"
-67	220.238122	0.142941	3.2871361492537314	12.546467999999999	778	11	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
-  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $15
-  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) ORDER BY c.created_at, c.id"
-33	215.92354999999998	0.602572	6.543137878787879	15.598265	772	23	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
-  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $29
-  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28) ORDER BY c.created_at, c.id"
-1	208.46123699999998	208.46123699999998	208.46123699999998	208.46123699999998	28970	28970	isureal	"INSERT INTO friend_requests (id, requester_id, recipient_id, status, created_at, updated_at)
-SELECT id, requester_id, recipient_id, status, created_at, updated_at FROM initial_friend_requests"
-31	203.43672500000002	2.551468	6.562474999999998	20.878455	722	23	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
-  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $28
-  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27) ORDER BY c.created_at, c.id"
-200	197.07180800000003	0.018951	0.9853590400000004	8.954193	543	2	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
-  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $5
-  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4) ORDER BY c.created_at, c.id"
-294	191.16075199999995	0.023481000000000002	0.6502066394557823	9.313118000000001	543	1	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
-  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $4
-  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3) ORDER BY c.created_at, c.id"
-57	189.42892900000007	0.14724	3.3233145438596488	10.436944	576	10	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
-  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $14
-  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) ORDER BY c.created_at, c.id"
-5031	188.20322100000038	0.008742	0.03740871019677972	2.775926	37221	7	isureal	SELECT user_low_id, user_high_id FROM friendships WHERE user_low_id = $1 OR user_high_id = $1
-28	186.98193099999997	3.145673	6.6779261071428575	27.087109	491	17	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
-         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
-  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $11
-  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) ORDER BY r.created_at DESC, r.id DESC"
-20	182.69796899999997	1.6079860000000001	9.134898450000001	29.67155	477	23	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
-  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $30
-  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29) ORDER BY c.created_at, c.id"
-26	182.06117900000004	0.389756	7.002353038461538	16.580659	539	20	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
-  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $26
-  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25) ORDER BY c.created_at, c.id"
-1	172.661795	172.661795	172.661795	172.661795	24985	24985	isureal	"INSERT INTO friendships (id, user_low_id, user_high_id, source_request_id, created_at, updated_at)
-SELECT id, user_low_id, user_high_id, source_request_id, created_at, updated_at FROM initial_friendships"
-14	170.68408399999998	7.460901	12.191720285714286	25.156347999999998	472	33	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
-         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
-  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $22
-  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21) ORDER BY r.created_at DESC, r.id DESC"
-661	169.3398570000001	0.062387	0.2561873782148261	19.940637000000002	661	1	isureal	INSERT INTO friend_requests (id, requester_id, recipient_id, status, created_at, updated_at) VALUES ($1,$2,$3,$4,clock_timestamp(),clock_timestamp())
-33	157.285481	0.924211	4.766226696969698	12.708449	457	13	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
-  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $19
-  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) ORDER BY c.created_at, c.id"
-24	150.047605	0.405953	6.251983541666667	17.698557	571	23	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
-  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $27
-  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26) ORDER BY c.created_at, c.id"
-14	148.443401	6.311917	10.603100071428571	32.798882	523	37	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
-         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
-  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $21
-  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) ORDER BY r.created_at DESC, r.id DESC"
-44	139.06416700000003	0.18151899999999999	3.1605492500000008	14.076619	438	9	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
-  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $13
-  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) ORDER BY c.created_at, c.id"
-14	135.341332	1.3050970000000002	9.667238000000001	20.853671000000002	587	41	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
-  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $31
-  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30) ORDER BY c.created_at, c.id"
-25	135.217142	0.261861	5.408685679999999	11.721696	454	18	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
-         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
-  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $12
-  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) ORDER BY r.created_at DESC, r.id DESC"
-353	133.52794400000002	0.013718	0.37826613031161493	8.052932	398	1	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
-  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $3
-  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2) ORDER BY c.created_at, c.id"
-7	131.63771199999996	8.833402000000001	18.805387428571425	34.459196	285	40	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
-         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
-  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $25
-  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24) ORDER BY r.created_at DESC, r.id DESC"
-1	127.515188	127.515188	127.515188	127.515188	0	0	isureal	DELETE FROM image_objects WHERE created_at > (SELECT created_at FROM initial_data_boundary)
-26	122.035358	0.38430400000000003	4.693667615384615	10.911467	448	17	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
-  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $20
-  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) ORDER BY c.created_at, c.id"
-141	121.86127600000003	0.182072	0.8642643687943259	22.619958	141	1	isureal	INSERT INTO image_objects(id,owner_user_id,data,media_type) VALUES ($1,$2,$3,$4) RETURNING created_at
-126	119.04527500000006	0.029019	0.94480376984127	7.0375689999999995	517	4	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
-  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $6
-  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5) ORDER BY c.created_at, c.id"
-31	108.138595	0.727923	3.488341774193549	7.320593000000001	315	10	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
-         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
-  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $7
-  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6) ORDER BY r.created_at DESC, r.id DESC"
-10	108.008031	7.7280120000000005	10.800803100000001	13.420918	388	38	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
-         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
-  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $24
-  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23) ORDER BY r.created_at DESC, r.id DESC"
-306	106.18034899999998	0.076159	0.3469946045751634	3.554611	362	1	isureal	SELECT id, username, secret_key_hash, display_name, bio, profile_image_id, region, account_type, status FROM users WHERE status=$5 AND id<>$1 AND ($2=$6 OR (username,id)>($2,$3)) AND (username ILIKE $4 ESCAPE $7 OR display_name ILIKE $4 ESCAPE $8) ORDER BY username, id LIMIT $9
-468	103.77888700000007	0.057871	0.22174975854700854	2.630786	468	1	isureal	INSERT INTO friendships (id, user_low_id, user_high_id, source_request_id) VALUES ($1,$2,$3,$4)
-7	101.493457	10.016607	14.499065285714286	23.313238	244	34	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
-         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
-  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $23
-  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22) ORDER BY r.created_at DESC, r.id DESC"
-395	101.06643299999992	0.007430999999999999	0.2558643873417722	4.632631	294	0	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
-  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $2
-  WHERE c.deleted_at IS NULL AND c.post_id IN ($1) ORDER BY c.created_at, c.id"
-388	94.68845899999995	0.011189000000000001	0.24404242010309282	6.252022999999999	388	1	isureal	"SELECT count(*)
-   FROM posts
-   WHERE author_id = $1 AND posting_window_local_date = $2 AND deleted_at IS NOT NULL"
-283	92.47599900000004	0.010141	0.3267703144876325	5.830252	299	1	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
-         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
-  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $4
-  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id=$1 AND ($2::timestamptz IS NULL OR (r.created_at,r.id)<($2,$3)) ORDER BY r.created_at DESC,r.id DESC LIMIT $5"
-455	83.73763000000002	0.057196	0.18403874725274738	5.242333	455	1	isureal	"SELECT w.id, w.region, w.local_date, w.starts_at, w.on_time_deadline, w.ended_at,
-          count(p.id) FILTER (WHERE p.deleted_at IS NULL) AS active,
-          count(p.id) FILTER (WHERE p.deleted_at IS NOT NULL) AS deleted
-   FROM users u JOIN posting_windows w ON w.region = u.region AND w.ended_at IS NULL
-   LEFT JOIN posting_windows posted_window ON posted_window.local_date = w.local_date
-   LEFT JOIN posts p ON p.author_id = u.id AND p.posting_window_id = posted_window.id
-   WHERE u.id = $1
-   GROUP BY w.id"
-3243	80.681939	0.010362	0.024878797101449263	4.168028	3243	1	isureal	SELECT id FROM users WHERE id=$1 AND status=$2 FOR SHARE
-4362	79.89363299999982	0.006633	0.018315825997249013	4.6232240000000004	1179	0	isureal	"SELECT CASE WHEN blocker_id = $1 THEN blocked_id ELSE blocker_id END
-  FROM block_relations WHERE blocker_id = $1 OR blocked_id = $1"
-14	75.097466	0.917758	5.364104714285713	12.631495	226	16	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
-  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $21
-  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) ORDER BY c.created_at, c.id"
-28	68.661326	0.192993	2.4521902142857135	5.194466	218	7	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
-  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $11
-  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) ORDER BY c.created_at, c.id"
-25	64.78504699999999	0.105639	2.5914018800000003	7.101826	213	8	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
-  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $12
-  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) ORDER BY c.created_at, c.id"
-3157	64.63464499999986	0.004753	0.020473438390877428	14.076621	2729	0	isureal	SELECT id, username, secret_key_hash, display_name, bio, profile_image_id, region, account_type, status FROM users WHERE username = $1
-14	63.983253999999995	1.003173	4.570232428571429	7.313313999999999	241	17	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
-  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $22
-  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21) ORDER BY c.created_at, c.id"
-7	63.247910999999995	3.338462	9.035415857142857	21.930337	136	19	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+14	217.73752600000003	3.5906190000000002	15.552680428571428	33.987411	277	19	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
   FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $25
   WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24) ORDER BY c.created_at, c.id"
-365	61.680164000000005	0.008966	0.16898675068493157	6.708949	355	0	isureal	"SELECT p.id FROM posts p
+1148	215.5489159999999	0.007668	0.18776037979094082	5.899277	1124	0	isureal	"SELECT p.id FROM posts p
    JOIN posting_windows w ON w.id = p.posting_window_id
    JOIN users u ON u.id = p.author_id
    JOIN posting_windows current ON current.region = u.region AND current.ended_at IS NULL
                               AND current.local_date = w.local_date
    WHERE p.author_id = $1 AND p.deleted_at IS NULL"
-1	60.121145	60.121145	60.121145	60.121145	10020	10020	isureal	"INSERT INTO follows (id, follower_id, followee_id, created_at, updated_at)
-SELECT id, follower_id, followee_id, created_at, updated_at FROM initial_follows"
-31	59.22776799999999	0.136937	1.9105731612903225	8.496339	166	5	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+16	211.308153	5.22031	13.2067595625	25.89251	304	19	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $26
+  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25) ORDER BY c.created_at, c.id"
+26	202.75392700000006	2.802774	7.798227961538463	16.921322	492	18	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
+  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $12
+  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) ORDER BY r.created_at DESC, r.id DESC"
+1	202.75310299999998	202.75310299999998	202.75310299999998	202.75310299999998	28970	28970	isureal	"INSERT INTO friend_requests (id, requester_id, recipient_id, status, created_at, updated_at)
+SELECT id, requester_id, recipient_id, status, created_at, updated_at FROM initial_friend_requests"
+12	198.464262	10.838424	16.5386885	27.140831000000002	424	35	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
+  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $22
+  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21) ORDER BY r.created_at DESC, r.id DESC"
+1	176.03885499999998	176.03885499999998	176.03885499999998	176.03885499999998	0	0	isureal	DELETE FROM notifications WHERE created_at > (SELECT created_at FROM initial_data_boundary)
+32	175.09733499999996	1.714165	5.4717917187500005	15.610716	348	10	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
+  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $7
+  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6) ORDER BY r.created_at DESC, r.id DESC"
+2017	166.55140500000022	0.016194	0.08257382498760527	27.154798	57	0	isureal	"SELECT id FROM friend_requests WHERE status=$3 AND
+    ((requester_id=$1 AND recipient_id=$2) OR (requester_id=$2 AND recipient_id=$1))"
+9	161.430414	5.86874	17.93671266666667	40.290048	478	53	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $31
+  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30) ORDER BY c.created_at, c.id"
+1	160.230208	160.230208	160.230208	160.230208	24985	24985	isureal	"INSERT INTO friendships (id, user_low_id, user_high_id, source_request_id, created_at, updated_at)
+SELECT id, user_low_id, user_high_id, source_request_id, created_at, updated_at FROM initial_friendships"
+835	158.40139200000007	0.047784999999999994	0.18970226586826353	5.805606	835	1	isureal	"SELECT id, username, secret_key_hash, display_name, bio, profile_image_id, region, account_type, status,
+         EXISTS(
+           SELECT $3 FROM posts p
+           JOIN posting_windows posted ON posted.id = p.posting_window_id
+           JOIN posting_windows current ON current.region = u.region AND current.ended_at IS NULL
+                                       AND current.local_date = posted.local_date
+           WHERE p.author_id = u.id AND p.deleted_at IS NULL
+         ) AS has_posted_today,
+         EXISTS(
+           SELECT $4 FROM block_relations b
+           WHERE (b.blocker_id = $1 AND b.blocked_id = $2)
+              OR (b.blocker_id = $2 AND b.blocked_id = $1)
+         ) AS blocked,
+         $5 AS friend,
+         $6 AS friend_of_friends
+  FROM users u
+  WHERE u.id = $1 AND u.status = $7"
+26	157.79787699999994	2.173658	6.069149115384616	11.423123	250	9	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $12
+  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) ORDER BY c.created_at, c.id"
+12	156.128785	4.789527	13.010732083333334	18.123698	204	17	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $22
+  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21) ORDER BY c.created_at, c.id"
+4150	146.94189400000016	0.009606	0.035407685301204736	2.124657	18502	4	isureal	SELECT user_low_id, user_high_id FROM friendships WHERE user_low_id = $1 OR user_high_id = $1
+8	146.046409	8.051629	18.255801124999998	32.64031	337	42	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
+  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $23
+  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22) ORDER BY r.created_at DESC, r.id DESC"
+32	138.157117	0.080331	4.31740990625	11.732365	151	4	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
   FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $7
   WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6) ORDER BY c.created_at, c.id"
-2731	57.21324699999998	0.001997	0.020949559502013892	3.430279	497	0	isureal	"UPDATE login_sessions
-  SET active = $2, invalidated_at = clock_timestamp(), reason = $3
-  WHERE user_id = $1 AND active = $4"
-13	57.101150999999994	0.234072	4.392396230769231	7.912956	204	15	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+11	137.929045	6.6656320000000004	12.539004090909092	27.594481000000002	340	30	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
+  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $21
+  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) ORDER BY r.created_at DESC, r.id DESC"
+5	132.04830499999997	9.876104	26.409661	34.67262	200	40	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
+  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $24
+  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23) ORDER BY r.created_at DESC, r.id DESC"
+412	126.43052900000015	0.072636	0.30687021601941766	6.321237	412	1	isureal	"WITH viewer_friends AS (
+    SELECT CASE WHEN user_low_id = $1 THEN user_high_id ELSE user_low_id END AS friend_id
+    FROM friendships
+    WHERE user_low_id = $1 OR user_high_id = $1
+  ),
+  author_friends AS (
+    SELECT CASE WHEN user_low_id = $2 THEN user_high_id ELSE user_low_id END AS friend_id
+    FROM friendships
+    WHERE user_low_id = $2 OR user_high_id = $2
+  )
+
+  SELECT id, username, secret_key_hash, display_name, bio, profile_image_id, region, account_type, status,
+         EXISTS(
+           SELECT $3 FROM posts p
+           JOIN posting_windows posted ON posted.id = p.posting_window_id
+           JOIN posting_windows current ON current.region = u.region AND current.ended_at IS NULL
+                                       AND current.local_date = posted.local_date
+           WHERE p.author_id = u.id AND p.deleted_at IS NULL
+         ) AS has_posted_today,
+         EXISTS(
+           SELECT $4 FROM block_relations b
+           WHERE (b.blocker_id = $1 AND b.blocked_id = $2)
+              OR (b.blocker_id = $2 AND b.blocked_id = $1)
+         ) AS blocked,
+         EXISTS (
+      SELECT $5 FROM friendships f
+      WHERE f.user_low_id = LEAST($1, $2) AND f.user_high_id = GREATEST($1, $2)
+    ) AS friend,
+         EXISTS (
+      SELECT $6 FROM viewer_friends vf
+      JOIN author_friends af ON af.friend_id = vf.friend_id
+    ) AS friend_of_friends
+  FROM users u
+  WHERE u.id = $1 AND u.status = $7"
+1	121.280369	121.280369	121.280369	121.280369	0	0	isureal	DELETE FROM realmojis WHERE created_at > (SELECT created_at FROM initial_data_boundary)
+5073	119.95651300000009	0.007475	0.023646069978316555	2.697245	5073	1	isureal	SELECT id, requester_id, recipient_id, status, created_at, updated_at FROM friend_requests WHERE id=$1
+3062	114.79243499999998	0.012238	0.037489364794252064	2.934071	3062	1	isureal	"SELECT p.id, p.author_id, p.posting_window_id, p.image_id, p.caption, p.visibility,
+  p.location_kind, p.latitude, p.longitude, p.locality, p.posted_at,
+  w.on_time_deadline, w.ended_at AS window_ended_at
+  FROM posts p JOIN posting_windows w ON w.id = p.posting_window_id
+  WHERE p.id = $1 AND p.deleted_at IS NULL"
+11	111.517497	6.2014510000000005	10.137954272727272	20.315198	169	15	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $21
+  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) ORDER BY c.created_at, c.id"
+1014	107.93988999999996	0.036778	0.10644959566074948	3.226666	1014	1	isureal	UPDATE friend_requests SET status=$2, updated_at=clock_timestamp() WHERE id=$1
+3170	106.44110099999979	0.010294	0.033577634384858	7.329998	3170	1	isureal	SELECT id FROM users WHERE id=$1 AND status=$2 FOR SHARE
+1	105.28738799999999	105.28738799999999	105.28738799999999	105.28738799999999	0	0	isureal	DELETE FROM image_object_locations WHERE created_at > (SELECT created_at FROM initial_data_boundary)
+16	105.12675200000002	3.3434850000000003	6.570422000000001	15.353471	231	14	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
+  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $11
+  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) ORDER BY r.created_at DESC, r.id DESC"
+3	100.518708	26.603478	33.506236	38.011467	444	148	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
+  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $32
+  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31) ORDER BY r.created_at DESC, r.id DESC"
+1129	100.47101100000006	0.006587	0.08899115234721006	8.196808	1129	1	isureal	"SELECT (
+     COALESCE(u.profile_image_id = $1, $3)
+     OR EXISTS (
+       SELECT $4 FROM posts p
+       WHERE p.image_id = $1 AND p.author_id = u.id AND p.deleted_at IS NULL
+     )
+     OR EXISTS (
+       SELECT $5 FROM realmojis r
+       JOIN posts p ON p.id = r.post_id AND p.deleted_at IS NULL
+       JOIN users author ON author.id = p.author_id AND author.status = $6
+       WHERE r.image_id = $1 AND r.reactor_id = u.id AND r.replaced_at IS NULL AND r.deleted_at IS NULL
+     )
+   ) AS visible
+   FROM users u
+   WHERE u.id = $2 AND u.status = $7"
+16	99.67873	1.968877	6.229920624999999	15.250715999999999	131	8	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $11
+  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) ORDER BY c.created_at, c.id"
+11	98.88011100000001	4.075098	8.989101	20.561252	144	13	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
+  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $9
+  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8) ORDER BY r.created_at DESC, r.id DESC"
+8	96.512636	5.042961	12.064079500000002	19.755162	169	21	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $23
+  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22) ORDER BY c.created_at, c.id"
+241	91.50414900000001	0.07107500000000001	0.37968526556016613	7.2910960000000005	241	1	isureal	INSERT INTO follows (id, follower_id, followee_id) VALUES ($1,$2,$3)
+5	91.33513900000001	8.696325	18.267027799999997	23.164907	95	19	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $24
+  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23) ORDER BY c.created_at, c.id"
+5120	87.46084099999983	0.005519	0.017082195507812523	1.891533	308	0	isureal	"SELECT CASE WHEN blocker_id = $1 THEN blocked_id ELSE blocker_id END
+  FROM block_relations WHERE blocker_id = $1 OR blocked_id = $1"
+1327	85.25611199999999	0.011056999999999999	0.06424725847776946	13.995892	1327	1	isureal	SELECT id FROM users WHERE id = $1 FOR SHARE
+13	82.096514	2.457967	6.315116461538462	15.649432000000001	184	14	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
          u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
   FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $10
   WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9) ORDER BY r.created_at DESC, r.id DESC"
-1375	54.14309700000002	0.015542000000000002	0.03937679781818179	2.034976	2745	1	isureal	SELECT id FROM users WHERE id = ANY($1::text[]) AND status=$2 ORDER BY id FOR SHARE
-1303	53.946485000000045	0.018076000000000002	0.0414017536454336	2.4952300000000003	1303	1	isureal	"SELECT p.id, p.author_id, p.posting_window_id, p.image_id, p.caption, p.visibility,
+3468	79.85083499999992	0.0043560000000000005	0.023025038927335685	5.525203	2688	0	isureal	SELECT id, username, secret_key_hash, display_name, bio, profile_image_id, region, account_type, status FROM users WHERE username = $1
+3	79.263816	22.600266	26.421272000000002	29.241264	222	74	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $32
+  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31) ORDER BY c.created_at, c.id"
+1444	77.00056200000009	0.018838	0.05332448891966753	3.8774	1444	1	isureal	"SELECT p.id, p.author_id, p.posting_window_id, p.image_id, p.caption, p.visibility,
   p.location_kind, p.latitude, p.longitude, p.locality, p.posted_at,
   w.on_time_deadline, w.ended_at AS window_ended_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
   FROM posts p
   JOIN posting_windows w ON w.id = p.posting_window_id
   JOIN users u ON u.id = p.author_id AND u.status = $2
   WHERE p.deleted_at IS NULL AND p.id = $1"
-2138	50.18306699999996	0.007843	0.02347196772684748	2.6990640000000004	2138	1	isureal	SELECT id, requester_id, recipient_id, status, created_at, updated_at FROM friend_requests WHERE id=$1
-468	48.34865299999999	0.03168	0.10330908760683763	3.972705	468	1	isureal	UPDATE friend_requests SET status=$2, updated_at=clock_timestamp() WHERE id=$1
-346	44.968847999999994	0.004358	0.12996776878612729	7.855831	228	0	isureal	"WITH candidates AS (
+3789	76.00341200000017	0.006489	0.020058963314858808	5.207866	3789	1	isureal	SELECT id, username, secret_key_hash, display_name, bio, profile_image_id, region, account_type, status FROM users WHERE id = $1 AND status = $2
+13	75.406121	1.9148450000000001	5.8004708461538455	13.063892000000001	90	6	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $10
+  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9) ORDER BY c.created_at, c.id"
+11	69.57762699999999	2.6747	6.325238818181819	10.930753	65	5	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $9
+  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8) ORDER BY c.created_at, c.id"
+433	68.57885599999996	0.004254	0.15838072979214782	12.988642	218	0	isureal	"WITH candidates AS (
   SELECT p.id, p.author_id, p.posting_window_id, p.image_id, p.caption, p.visibility,
          p.location_kind, p.latitude, p.longitude, p.locality, p.posted_at,
          w.on_time_deadline, w.ended_at AS window_ended_at,
@@ -428,65 +518,87 @@ FROM candidates
 WHERE ($6::timestamptz IS NULL OR (posted_at, id) < ($6, $7))
 ORDER BY posted_at DESC, id DESC
 LIMIT $17"
-706	43.501224999999984	0.013053	0.06161646600566567	2.038146	45	0	isureal	"SELECT id FROM friend_requests WHERE status=$3 AND
-    ((requester_id=$1 AND recipient_id=$2) OR (requester_id=$2 AND recipient_id=$1))"
-10	43.163455	1.659653	4.3163455	6.571133	195	19	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
-  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $24
-  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23) ORDER BY c.created_at, c.id"
-139	41.162375	0.016297	0.29613219424460435	12.114454	1690	12	isureal	"SELECT relations.id, relations.updated_at, u.id AS ""user.id"", u.username AS ""user.username"", u.secret_key_hash AS ""user.secret_key_hash"", u.display_name AS ""user.display_name"", u.bio AS ""user.bio"", u.profile_image_id AS ""user.profile_image_id"", u.region AS ""user.region"", u.account_type AS ""user.account_type"", u.status AS ""user.status""
+237	63.25084799999999	0.009330999999999999	0.2668812151898734	4.037831000000001	33	0	isureal	UPDATE realmojis SET replaced_at=clock_timestamp() WHERE post_id=$1 AND reactor_id=$2 AND replaced_at IS NULL AND deleted_at IS NULL
+2690	62.207355000000035	0.002025	0.023125410780669178	1.611429	436	0	isureal	"UPDATE login_sessions
+  SET active = $2, invalidated_at = clock_timestamp(), reason = $3
+  WHERE user_id = $1 AND active = $4"
+3519	60.61458200000004	0.006947	0.017224945154873585	2.516541	3519	1	isureal	SELECT EXISTS(SELECT $3 FROM block_relations WHERE (blocker_id=$1 AND blocked_id=$2) OR (blocker_id=$2 AND blocked_id=$1))
+357	59.406358999999995	0.041764	0.16640436694677865	8.440069	357	1	isureal	INSERT INTO users (id, username, secret_key_hash, display_name, region) VALUES ($1, $2, $3, $4, $5)
+1	56.151542	56.151542	56.151542	56.151542	10020	10020	isureal	"INSERT INTO follows (id, follower_id, followee_id, created_at, updated_at)
+SELECT id, follower_id, followee_id, created_at, updated_at FROM initial_follows"
+346	55.07923699999994	0.014461	0.15918854624277448	18.053525	2596	7	isureal	"SELECT relations.id, relations.updated_at, u.id AS ""user.id"", u.username AS ""user.username"", u.secret_key_hash AS ""user.secret_key_hash"", u.display_name AS ""user.display_name"", u.bio AS ""user.bio"", u.profile_image_id AS ""user.profile_image_id"", u.region AS ""user.region"", u.account_type AS ""user.account_type"", u.status AS ""user.status""
    FROM (SELECT id, user_low_id AS first_id, user_high_id AS second_id, updated_at FROM friendships WHERE user_low_id=$1 OR user_high_id=$1) relations
    JOIN users u ON u.status = $4
                AND u.id = CASE WHEN relations.first_id = $1 THEN relations.second_id ELSE relations.first_id END
    WHERE ($2::timestamptz IS NULL OR (relations.updated_at, relations.id) < ($2, $3))
    ORDER BY relations.updated_at DESC, relations.id DESC LIMIT $5"
-1094	38.67368300000007	0.013329	0.03535071572212062	2.03111	1094	1	isureal	"SELECT p.id, p.author_id, p.posting_window_id, p.image_id, p.caption, p.visibility,
-  p.location_kind, p.latitude, p.longitude, p.locality, p.posted_at,
-  w.on_time_deadline, w.ended_at AS window_ended_at
-  FROM posts p JOIN posting_windows w ON w.id = p.posting_window_id
-  WHERE p.id = $1 AND p.deleted_at IS NULL"
-2728	36.576600999999975	0.006070000000000001	0.013407844941348997	0.953588	2728	1	isureal	SELECT user_id, token_hash, created_at FROM login_sessions WHERE id = $1
-11	34.766123	1.9848489999999999	3.160556636363637	5.1079300000000005	139	12	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+1	53.676218999999996	53.676218999999996	53.676218999999996	53.676218999999996	0	0	isureal	DELETE FROM comments WHERE created_at > (SELECT created_at FROM initial_data_boundary)
+483	50.879849999999976	0.026321999999999998	0.10534130434782607	17.212393	483	1	isureal	"UPDATE login_sessions
+		SET active = $3, invalidated_at = clock_timestamp(), reason = $4
+		WHERE user_id = $1 AND active = $5 AND token_hash = $2"
+2292	45.806273999999966	0.006849	0.019985285340314143	2.1722859999999997	2292	1	isureal	"SELECT EXISTS(
+    SELECT $3 FROM friendships
+    WHERE user_low_id = $1 AND user_high_id = $2
+  )"
+2687	44.93676100000002	0.005727	0.016723766654261275	2.3407419999999997	2687	1	isureal	SELECT user_id, token_hash, created_at FROM login_sessions WHERE id = $1
+204	40.25311200000001	0.009073	0.19731917647058825	3.691103	410	2	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
+         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
+  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $4
+  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id=$1 AND ($2::timestamptz IS NULL OR (r.created_at,r.id)<($2,$3)) ORDER BY r.created_at DESC,r.id DESC LIMIT $5"
+10	40.22911	0.14899800000000002	4.022911000000001	8.101415000000001	139	13	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
          u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
   FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $8
   WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7) ORDER BY r.created_at DESC, r.id DESC"
-2	31.330584	14.866334	15.665292	16.46425	256	128	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
-         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
-  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $32
-  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31) ORDER BY r.created_at DESC, r.id DESC"
-515	29.219735999999966	0.026749000000000002	0.056737351456310654	1.355649	515	1	isureal	"UPDATE login_sessions
-		SET active = $3, invalidated_at = clock_timestamp(), reason = $4
-		WHERE user_id = $1 AND active = $5 AND token_hash = $2"
-6	28.692745	3.283097	4.782124166666667	7.933770999999999	89	14	isureal	"SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
-         u.id AS ""reactor.id"", u.username AS ""reactor.username"", u.secret_key_hash AS ""reactor.secret_key_hash"", u.display_name AS ""reactor.display_name"", u.bio AS ""reactor.bio"", u.profile_image_id AS ""reactor.profile_image_id"", u.region AS ""reactor.region"", u.account_type AS ""reactor.account_type"", u.status AS ""reactor.status""
-  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = $9
-  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL AND r.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8) ORDER BY r.created_at DESC, r.id DESC"
-1790	28.23795199999996	0.006717	0.015775392178770924	1.114747	1790	1	isureal	SELECT id, username, secret_key_hash, display_name, bio, profile_image_id, region, account_type, status FROM users WHERE id = $1 AND status = $2
-1502	26.728385	0.007815	0.01779519640479361	1.828804	1502	1	isureal	SELECT EXISTS(SELECT $3 FROM block_relations WHERE (blocker_id=$1 AND blocked_id=$2) OR (blocker_id=$2 AND blocked_id=$1))
-76	26.504968000000005	0.106118	0.3487495789473684	2.8235349999999997	76	1	isureal	INSERT INTO follows (id, follower_id, followee_id) VALUES ($1,$2,$3)
-7	25.292255999999995	1.021506	3.6131794285714287	9.08161	119	17	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
-  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $23
-  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22) ORDER BY c.created_at, c.id"
-13	23.986110000000004	0.146598	1.8450853846153843	7.533080999999999	102	7	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
-  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $10
-  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9) ORDER BY c.created_at, c.id"
-2	20.674487	8.268765	10.3372435	12.405721999999999	156	78	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
-  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $32
-  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31) ORDER BY c.created_at, c.id"
-224	19.978748999999997	0.009757	0.08919084375	3.000723	630	2	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+1157	40.07962800000003	0.005573	0.03464099222126191	20.704798999999998	1157	1	isureal	SELECT id, local_date, starts_at FROM posting_windows WHERE region = $1 AND ended_at IS NULL
+197	39.74200899999999	0.057069	0.2017360862944163	5.9336329999999995	197	1	isureal	"SELECT id, username, secret_key_hash, display_name, bio, profile_image_id, region, account_type, status,
+         EXISTS(
+           SELECT $3 FROM posts p
+           JOIN posting_windows posted ON posted.id = p.posting_window_id
+           JOIN posting_windows current ON current.region = u.region AND current.ended_at IS NULL
+                                       AND current.local_date = posted.local_date
+           WHERE p.author_id = u.id AND p.deleted_at IS NULL
+         ) AS has_posted_today,
+         EXISTS(
+           SELECT $4 FROM block_relations b
+           WHERE (b.blocker_id = $1 AND b.blocked_id = $2)
+              OR (b.blocker_id = $2 AND b.blocked_id = $1)
+         ) AS blocked,
+         EXISTS (
+      SELECT $5 FROM friendships f
+      WHERE f.user_low_id = LEAST($1, $2) AND f.user_high_id = GREATEST($1, $2)
+    ) AS friend,
+         $6 AS friend_of_friends
+  FROM users u
+  WHERE u.id = $1 AND u.status = $7"
+194	38.33737799999999	0.008674000000000001	0.19761535051546403	3.439429	666	3	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
   FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $4
   WHERE c.deleted_at IS NULL AND c.post_id=$1 AND ($2::timestamptz IS NULL OR (c.created_at,c.id)>($2,$3)) ORDER BY c.created_at,c.id LIMIT $5"
-4636	19.504071999999983	0.002026	0.004207090595340806	0.154484	4636	1	isureal	SELECT pg_advisory_xact_lock(hashtextextended($1, $2))
-310	18.48253	0.009024	0.05962106451612905	3.027207	464	1	isureal	"SELECT relations.id, relations.updated_at, u.id AS ""user.id"", u.username AS ""user.username"", u.secret_key_hash AS ""user.secret_key_hash"", u.display_name AS ""user.display_name"", u.bio AS ""user.bio"", u.profile_image_id AS ""user.profile_image_id"", u.region AS ""user.region"", u.account_type AS ""user.account_type"", u.status AS ""user.status""
+10	35.275448	0.11068	3.5275447999999994	5.544057	49	4	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
+  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $8
+  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7) ORDER BY c.created_at, c.id"
+480	33.036972	0.008281	0.06882702500000006	2.265886	1273	2	isureal	"SELECT relations.id, relations.updated_at, u.id AS ""user.id"", u.username AS ""user.username"", u.secret_key_hash AS ""user.secret_key_hash"", u.display_name AS ""user.display_name"", u.bio AS ""user.bio"", u.profile_image_id AS ""user.profile_image_id"", u.region AS ""user.region"", u.account_type AS ""user.account_type"", u.status AS ""user.status""
    FROM (SELECT id, requester_id AS first_id, recipient_id AS second_id, updated_at FROM friend_requests WHERE recipient_id=$1 AND status=$4) relations
    JOIN users u ON u.status = $5
                AND u.id = CASE WHEN relations.first_id = $1 THEN relations.second_id ELSE relations.first_id END
    WHERE ($2::timestamptz IS NULL OR (relations.updated_at, relations.id) < ($2, $3))
    ORDER BY relations.updated_at DESC, relations.id DESC LIMIT $6"
-11	17.464177	0.08089199999999999	1.5876524545454547	2.95927	62	5	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
-  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $8
-  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7) ORDER BY c.created_at, c.id"
-685	17.146405999999992	0.002136	0.0250312496350365	3.3747260000000003	17861	26	isureal	SELECT ip, banned_until FROM ip_bans WHERE banned_until > clock_timestamp()
-1	15.555882	15.555882	15.555882	15.555882	0	0	isureal	"DO $$
+91	32.694931	0.103506	0.359284956043956	4.066418	91	1	isureal	UPDATE posts SET visibility = $2 WHERE id = $1
+59	22.61150600000001	0.053495	0.38324586440677966	6.55317	59	1	isureal	UPDATE posts SET deleted_at = clock_timestamp() WHERE id = $1
+358	20.83220200000003	0.007645000000000001	0.058190508379888255	3.736435	358	1	isureal	SELECT EXISTS(SELECT $2 FROM users WHERE username = $1)
+267	18.277834000000006	0.018062	0.0684563071161049	2.413786	534	2	isureal	SELECT id FROM users WHERE id = ANY($1::text[]) ORDER BY id FOR SHARE
+649	15.365374	0.002163	0.02367546070878274	0.793933	17182	26	isureal	SELECT ip, banned_until FROM ip_bans WHERE banned_until > clock_timestamp()
+7	15.257297000000001	0.281242	2.1796138571428574	6.955505	7	1	isureal	DELETE FROM image_objects WHERE id=$1
+433	15.059093000000015	0.008060000000000001	0.03477850577367208	3.450921	384	0	isureal	SELECT followee_id FROM follows WHERE follower_id = $1
+152	14.174437999999999	0.025938000000000003	0.09325288157894737	2.469098	152	1	isureal	UPDATE users SET bio = $2, updated_at = clock_timestamp() WHERE id = $1
+191	12.86523599999999	0.020793	0.06735725654450261	2.484717	191	1	isureal	UPDATE users SET profile_image_id=$2,updated_at=clock_timestamp() WHERE id=$1
+1	12.344508000000001	12.344508000000001	12.344508000000001	12.344508000000001	0	0	isureal	DELETE FROM image_objects WHERE created_at > (SELECT created_at FROM initial_data_boundary)
+241	10.440989000000005	0.008903	0.043323605809128626	1.5975780000000002	241	1	isureal	SELECT EXISTS(SELECT $3 FROM follows WHERE follower_id=$1 AND followee_id=$2)
+26	9.992517	0.039739000000000003	0.384327576923077	2.559077	26	1	isureal	UPDATE realmojis SET deleted_at=clock_timestamp() WHERE id=$1
+194	8.215663999999997	0.011824999999999999	0.04234878350515461	3.047928	194	1	isureal	SELECT profile_image_id FROM users WHERE id=$1 FOR NO KEY UPDATE
+176	6.538557000000003	0.012945	0.037150892045454534	0.492787	176	1	isureal	"INSERT INTO ip_bans (ip, banned_until)
+		VALUES ($1, clock_timestamp() + make_interval(secs => $2))
+		ON CONFLICT (ip) DO UPDATE SET banned_until = GREATEST(ip_bans.banned_until, EXCLUDED.banned_until)"
+1	6.399265	6.399265	6.399265	6.399265	0	0	isureal	"DO $$
 DECLARE partition_name text;
 BEGIN
   FOR partition_name IN
@@ -497,107 +609,71 @@ BEGIN
     EXECUTE format('TRUNCATE %I', partition_name);
   END LOOP;
 END $$"
-99	14.568159000000001	0.008968	0.1471531212121212	2.9715599999999998	32	0	isureal	UPDATE realmojis SET replaced_at=clock_timestamp() WHERE post_id=$1 AND reactor_id=$2 AND replaced_at IS NULL AND deleted_at IS NULL
-115	11.878943000000001	0.035314	0.10329515652173911	0.840592	115	1	isureal	INSERT INTO users (id, username, secret_key_hash, display_name, region) VALUES ($1, $2, $3, $4, $5)
-1	11.36976	11.36976	11.36976	11.36976	0	0	isureal	"UPDATE users u
+9878	5.854621000000008	0.000136	0.000592692954039279	0.089967	0	0	isureal	BEGIN
+9035	5.743740999999981	0.000143	0.0006357211953514121	0.281294	0	0	isureal	COMMIT
+47	5.004142	0.033048	0.1064711063829787	1.200968	47	1	isureal	UPDATE comments SET deleted_at=clock_timestamp() WHERE id=$1
+1	5.002536	5.002536	5.002536	5.002536	0	0	isureal	"UPDATE users u
 SET display_name = i.display_name, bio = i.bio, profile_image_id = i.profile_image_id, region = i.region,
     account_type = i.account_type, status = i.status, deleted_at = i.deleted_at, updated_at = i.updated_at
 FROM initial_users i
 WHERE u.id = i.id
   AND (u.display_name, u.bio, u.profile_image_id, u.region, u.account_type, u.status, u.deleted_at, u.updated_at)
       IS DISTINCT FROM (i.display_name, i.bio, i.profile_image_id, i.region, i.account_type, i.status, i.deleted_at, i.updated_at)"
-435	11.145138000000001	0.012027	0.025621006896551744	0.798597	435	1	isureal	SELECT id FROM users WHERE id = $1 FOR SHARE
-346	9.083113000000003	0.006628	0.026251771676300578	1.604812	365	1	isureal	SELECT followee_id FROM follows WHERE follower_id = $1
-6	8.296254000000001	0.170247	1.3827090000000002	2.241924	39	6	isureal	"SELECT c.id, c.post_id, c.author_id, c.body, c.created_at, c.deleted_at, u.id AS ""author.id"", u.username AS ""author.username"", u.secret_key_hash AS ""author.secret_key_hash"", u.display_name AS ""author.display_name"", u.bio AS ""author.bio"", u.profile_image_id AS ""author.profile_image_id"", u.region AS ""author.region"", u.account_type AS ""author.account_type"", u.status AS ""author.status""
-  FROM comments c JOIN users u ON u.id = c.author_id AND u.status = $9
-  WHERE c.deleted_at IS NULL AND c.post_id IN ($1, $2, $3, $4, $5, $6, $7, $8) ORDER BY c.created_at, c.id"
-1	7.825655	7.825655	7.825655	7.825655	0	0	isureal	TRUNCATE ip_bans, login_sessions, administrator_sessions, friendships, friend_requests, follows, block_relations
-1	6.349521	6.349521	6.349521	6.349521	1	1	isureal	DELETE FROM image_objects WHERE id=$1
-366	5.922622999999996	0.0068639999999999994	0.0161820300546448	1.183451	366	1	isureal	SELECT id, local_date, starts_at FROM posting_windows WHERE region = $1 AND ended_at IS NULL
-158	5.2170970000000025	0.01648	0.03301960126582278	0.456699	316	2	isureal	SELECT id FROM users WHERE id = ANY($1::text[]) ORDER BY id FOR SHARE
-76	4.451989	0.010879999999999999	0.058578802631578955	1.002284	76	1	isureal	SELECT EXISTS(SELECT $3 FROM follows WHERE follower_id=$1 AND followee_id=$2)
-44	4.232847	0.02559	0.09620106818181819	1.644775	44	1	isureal	SELECT c.author_id,p.author_id AS post_author_id FROM comments c JOIN posts p ON p.id=c.post_id WHERE c.id=$1 AND c.deleted_at IS NULL FOR UPDATE OF c
-24	4.148379	0.044759	0.17284912500000005	1.471382	24	1	isureal	UPDATE realmojis SET deleted_at=clock_timestamp() WHERE id=$1
-14	4.038704	0.10582	0.28847885714285715	0.7610359999999999	14	1	isureal	INSERT INTO block_relations (id, blocker_id, blocked_id) VALUES ($1,$2,$3)
-5929	4.003803000000006	0.000134	0.0006752914488109312	0.466687	0	0	isureal	BEGIN
-5461	3.580331000000009	0.000186	0.0006556182017945419	0.139018	0	0	isureal	COMMIT
-111	3.4277440000000015	0.01402	0.030880576576576578	0.159226	111	1	isureal	"INSERT INTO ip_bans (ip, banned_until)
-		VALUES ($1, clock_timestamp() + make_interval(secs => $2))
-		ON CONFLICT (ip) DO UPDATE SET banned_until = GREATEST(ip_bans.banned_until, EXCLUDED.banned_until)"
-99	3.420450999999999	0.008603999999999999	0.034550010101010116	1.186454	99	1	isureal	SELECT id, post_id, reactor_id, image_id, reaction_type, created_at, replaced_at, deleted_at FROM realmojis WHERE id=$1
-116	3.2426089999999994	0.007038	0.027953525862068958	1.310702	116	1	isureal	SELECT EXISTS(SELECT $2 FROM users WHERE username = $1)
-24	2.708779	0.030912	0.11286579166666666	1.485202	24	1	isureal	SELECT r.reactor_id,p.author_id FROM realmojis r JOIN posts p ON p.id=r.post_id WHERE r.id=$1 AND r.deleted_at IS NULL FOR UPDATE OF r
-38	2.586891	0.0317	0.06807607894736842	0.332854	38	1	isureal	UPDATE posts SET visibility = $2 WHERE id = $1
-157	2.173355999999999	0.008787999999999999	0.013843031847133772	0.03972	157	1	isureal	SELECT id,post_id,author_id,body,created_at,deleted_at FROM comments WHERE id=$1
-1	2.1252210000000002	2.1252210000000002	2.1252210000000002	2.1252210000000002	250	250	isureal	"INSERT INTO block_relations (id, blocker_id, blocked_id, created_at)
+1	4.354204	4.354204	4.354204	4.354204	0	0	isureal	TRUNCATE ip_bans, login_sessions, administrator_sessions, friendships, friend_requests, follows, block_relations
+10	3.258008	0.17230800000000002	0.3258008	0.6239680000000001	10	1	isureal	INSERT INTO block_relations (id, blocker_id, blocked_id) VALUES ($1,$2,$3)
+188	3.0540239999999996	0.007076	0.016244808510638295	0.902754	188	1	isureal	SELECT id, region, local_date, starts_at, on_time_deadline, ended_at FROM posting_windows WHERE id = $1
+1233	2.465752999999999	0.0009339999999999999	0.0019997996755879975	0.073601	1233	1	isureal	SELECT clock_timestamp()
+47	2.4554720000000003	0.028003	0.05224408510638298	0.274069	47	1	isureal	SELECT c.author_id,p.author_id AS post_author_id FROM comments c JOIN posts p ON p.id=c.post_id WHERE c.id=$1 AND c.deleted_at IS NULL FOR UPDATE OF c
+2	1.598891	0.104584	0.7994455	1.494307	2	1	isureal	UPDATE users SET display_name = $2, updated_at = clock_timestamp() WHERE id = $1
+1	1.296373	1.296373	1.296373	1.296373	250	250	isureal	"INSERT INTO block_relations (id, blocker_id, blocked_id, created_at)
 SELECT id, blocker_id, blocked_id, created_at FROM initial_block_relations"
-2	2.123627	0.7431099999999999	1.0618135	1.380517	357	178	isureal	"SELECT
-  s.calls AS cnt,
-  s.total_exec_time AS sum,
-  s.min_exec_time AS min,
-  s.mean_exec_time AS avg,
-  s.max_exec_time AS max,
-  s.rows AS sumRows,
-  COALESCE((s.rows / NULLIF(s.calls,$1)),$2) AS avgRows,
-  d.datname AS db,
-  s.query
-FROM pg_stat_statements s
-LEFT JOIN pg_database d ON s.dbid = d.oid
-ORDER BY s.total_exec_time DESC"
-22	2.05631	0.05753	0.09346863636363636	0.20505299999999999	22	1	isureal	UPDATE posts SET deleted_at = clock_timestamp() WHERE id = $1
-44	2.024435	0.022431	0.046009886363636364	0.576143	44	1	isureal	UPDATE comments SET deleted_at=clock_timestamp() WHERE id=$1
-42	1.93472	0.023474	0.0460647619047619	0.10766099999999999	42	1	isureal	UPDATE users SET profile_image_id=$2,updated_at=clock_timestamp() WHERE id=$1
-35	1.822554	0.025596999999999998	0.052072971428571424	0.104318	35	1	isureal	UPDATE users SET bio = $2, updated_at = clock_timestamp() WHERE id = $1
-18	1.5177890000000003	0.031997	0.08432161111111111	0.675977	18	1	isureal	"INSERT INTO posting_windows (id, region, local_date, starts_at, on_time_deadline)
-   VALUES ($1, $2, $3, $4, $5)"
-421	1.232711	0.0009850000000000002	0.0029280546318289787	0.391479	421	1	isureal	SELECT clock_timestamp()
-87	1.1283250000000002	0.007551	0.012969252873563219	0.058816	87	1	isureal	SELECT id, region, local_date, starts_at, on_time_deadline, ended_at FROM posting_windows WHERE id = $1
-17	1.0930130000000002	0.046354	0.06429488235294116	0.10208999999999999	17	1	isureal	UPDATE friend_requests SET status=$2, updated_at=clock_timestamp() WHERE id=$1
-43	1.0042769999999999	0.011441	0.02335527906976744	0.043939	43	1	isureal	SELECT profile_image_id FROM users WHERE id=$1 FOR NO KEY UPDATE
-1	0.937716	0.937716	0.937716	0.937716	146	146	isureal	DELETE FROM users WHERE created_at > (SELECT created_at FROM initial_data_boundary)
-18	0.8571279999999999	0.004826	0.047618222222222215	0.095027	15	0	isureal	UPDATE posting_windows SET ended_at = $2 WHERE region = $1 AND ended_at IS NULL
-14	0.767221	0.024603	0.054801499999999996	0.09323300000000001	1	0	isureal	UPDATE friend_requests SET status=$3, updated_at=clock_timestamp() WHERE status=$4 AND ((requester_id=$1 AND recipient_id=$2) OR (requester_id=$2 AND recipient_id=$1))
-3	0.7173309999999999	0.024621999999999998	0.2391103333333333	0.6666899999999999	3	1	isureal	SELECT id FROM users WHERE id=$1 AND status=$2 FOR NO KEY UPDATE
-13	0.6085339999999999	0.019859	0.0468103076923077	0.089312	28	2	isureal	"SELECT relations.id, relations.updated_at, u.id AS ""user.id"", u.username AS ""user.username"", u.secret_key_hash AS ""user.secret_key_hash"", u.display_name AS ""user.display_name"", u.bio AS ""user.bio"", u.profile_image_id AS ""user.profile_image_id"", u.region AS ""user.region"", u.account_type AS ""user.account_type"", u.status AS ""user.status""
+16	1.285758	0.042481000000000005	0.08035987500000001	0.16498500000000002	16	1	isureal	UPDATE posts SET caption = $2 WHERE id = $1
+26	1.2733159999999997	0.031149999999999997	0.04897369230769231	0.078223	26	1	isureal	SELECT r.reactor_id,p.author_id FROM realmojis r JOIN posts p ON p.id=r.post_id WHERE r.id=$1 AND r.deleted_at IS NULL FOR UPDATE OF r
+10	1.243775	0.015260999999999999	0.12437750000000002	1.032883	0	0	isureal	DELETE FROM follows WHERE (follower_id=$1 AND followee_id=$2) OR (follower_id=$2 AND followee_id=$1)
+18	1.2256690000000001	0.002955	0.06809272222222222	0.422951	15	0	isureal	UPDATE posting_windows SET ended_at = $2 WHERE region = $1 AND ended_at IS NULL
+19	1.137337	0.021225	0.05985984210526315	0.109028	82	4	isureal	"SELECT relations.id, relations.updated_at, u.id AS ""user.id"", u.username AS ""user.username"", u.secret_key_hash AS ""user.secret_key_hash"", u.display_name AS ""user.display_name"", u.bio AS ""user.bio"", u.profile_image_id AS ""user.profile_image_id"", u.region AS ""user.region"", u.account_type AS ""user.account_type"", u.status AS ""user.status""
    FROM (SELECT id, requester_id AS first_id, recipient_id AS second_id, updated_at FROM friend_requests WHERE requester_id=$1 AND status=$4) relations
    JOIN users u ON u.status = $5
                AND u.id = CASE WHEN relations.first_id = $1 THEN relations.second_id ELSE relations.first_id END
    WHERE ($2::timestamptz IS NULL OR (relations.updated_at, relations.id) < ($2, $3))
    ORDER BY relations.updated_at DESC, relations.id DESC LIMIT $6"
-9	0.5625930000000001	0.038465	0.06251033333333333	0.092469	9	1	isureal	UPDATE posts SET caption = $2 WHERE id = $1
-1	0.550701	0.550701	0.550701	0.550701	1	1	isureal	SELECT id, password_hash FROM administrators WHERE username = $1
-1	0.511954	0.511954	0.511954	0.511954	1	1	isureal	"INSERT INTO administrator_sessions (id, administrator_id, token_hash)
+1	1.086768	1.086768	1.086768	1.086768	1	1	isureal	SELECT id, password_hash FROM administrators WHERE username = $1
+1	0.8037409999999999	0.8037409999999999	0.8037409999999999	0.8037409999999999	0	0	isureal	DELETE FROM users WHERE created_at > (SELECT created_at FROM initial_data_boundary)
+18	0.7909929999999998	0.021036	0.04394405555555556	0.060847000000000005	18	1	isureal	"INSERT INTO posting_windows (id, region, local_date, starts_at, on_time_deadline)
+   VALUES ($1, $2, $3, $4, $5)"
+7	0.554164	0.038166	0.0791662857142857	0.174587	7	1	isureal	UPDATE friend_requests SET status=$2, updated_at=clock_timestamp() WHERE id=$1
+843	0.49219499999999994	0.000203	0.0005838612099644132	0.023239	0	0	isureal	rollback
+10	0.4467509999999999	0.01828	0.044675099999999995	0.069026	0	0	isureal	UPDATE friend_requests SET status=$3, updated_at=clock_timestamp() WHERE status=$4 AND ((requester_id=$1 AND recipient_id=$2) OR (requester_id=$2 AND recipient_id=$1))
+1	0.423346	0.423346	0.423346	0.423346	1	1	isureal	"INSERT INTO administrator_sessions (id, administrator_id, token_hash)
   VALUES ($1, $2, $3)"
-14	0.433245	0.013741	0.030946071428571434	0.046701	1	0	isureal	DELETE FROM follows WHERE (follower_id=$1 AND followee_id=$2) OR (follower_id=$2 AND followee_id=$1)
-4	0.380185	0.07523099999999999	0.09504625	0.132251	4	1	isureal	UPDATE users SET display_name = $2, updated_at = clock_timestamp() WHERE id = $1
-12	0.36993700000000007	0.010984	0.030828083333333336	0.054879000000000004	13	1	isureal	"SELECT relations.id, relations.updated_at, u.id AS ""user.id"", u.username AS ""user.username"", u.secret_key_hash AS ""user.secret_key_hash"", u.display_name AS ""user.display_name"", u.bio AS ""user.bio"", u.profile_image_id AS ""user.profile_image_id"", u.region AS ""user.region"", u.account_type AS ""user.account_type"", u.status AS ""user.status""
+8	0.266636	0.011403	0.0333295	0.072295	7	0	isureal	"SELECT relations.id, relations.updated_at, u.id AS ""user.id"", u.username AS ""user.username"", u.secret_key_hash AS ""user.secret_key_hash"", u.display_name AS ""user.display_name"", u.bio AS ""user.bio"", u.profile_image_id AS ""user.profile_image_id"", u.region AS ""user.region"", u.account_type AS ""user.account_type"", u.status AS ""user.status""
    FROM (SELECT id, follower_id AS first_id, followee_id AS second_id, updated_at FROM follows WHERE follower_id=$1) relations
    JOIN users u ON u.status = $4
                AND u.id = CASE WHEN relations.first_id = $1 THEN relations.second_id ELSE relations.first_id END
    WHERE ($2::timestamptz IS NULL OR (relations.updated_at, relations.id) < ($2, $3))
    ORDER BY relations.updated_at DESC, relations.id DESC LIMIT $5"
-6	0.369468	0.027039999999999998	0.061578	0.11421	6	1	isureal	UPDATE users SET account_type=$2, updated_at=clock_timestamp() WHERE id=$1 AND status=$3 AND account_type=$4
-18	0.305151	0.007692	0.016952833333333334	0.07654	18	1	isureal	SELECT EXISTS(SELECT $3 FROM posting_windows WHERE region = $1 AND local_date >= $2)
-26	0.27682300000000004	0.00566	0.010647038461538463	0.023906	26	1	isureal	"SELECT administrator_id, token_hash, created_at
+30	0.259216	0.005667999999999999	0.008640533333333334	0.024459	30	1	isureal	"SELECT administrator_id, token_hash, created_at
   FROM administrator_sessions
   WHERE token_hash = $1 AND active = $2"
-468	0.27170299999999986	0.000236	0.0005805619658119656	0.013518	0	0	isureal	rollback
-3	0.20501000000000003	0.033392	0.06833666666666667	0.088231	3	1	isureal	UPDATE users SET status=$2, deleted_at=clock_timestamp(), updated_at=clock_timestamp() WHERE id=$1
-15	0.169463	0.007615	0.011297533333333335	0.018753000000000002	1	0	isureal	DELETE FROM friendships WHERE user_low_id=$1 AND user_high_id=$2
-1	0.163959	0.163959	0.163959	0.163959	18	18	isureal	DELETE FROM posting_windows WHERE created_at > (SELECT created_at FROM initial_data_boundary)
-14	0.145859	0.007521	0.0104185	0.024534	14	1	isureal	SELECT EXISTS(SELECT $3 FROM block_relations WHERE blocker_id=$1 AND blocked_id=$2)
-1	0.102488	0.102488	0.102488	0.102488	1	1	isureal	SELECT pg_stat_statements_reset()
-6	0.083653	0.009032	0.013942166666666667	0.020863999999999997	0	0	isureal	"SELECT relations.id, relations.updated_at, u.id AS ""user.id"", u.username AS ""user.username"", u.secret_key_hash AS ""user.secret_key_hash"", u.display_name AS ""user.display_name"", u.bio AS ""user.bio"", u.profile_image_id AS ""user.profile_image_id"", u.region AS ""user.region"", u.account_type AS ""user.account_type"", u.status AS ""user.status""
+14	0.22875900000000002	0.0065379999999999995	0.01633992857142857	0.03514	4	0	isureal	DELETE FROM friendships WHERE user_low_id=$1 AND user_high_id=$2
+18	0.20326699999999998	0.008337	0.01129261111111111	0.023045	18	1	isureal	SELECT EXISTS(SELECT $3 FROM posting_windows WHERE region = $1 AND local_date >= $2)
+7	0.176365	0.015092000000000001	0.025195000000000002	0.033782	7	1	isureal	DELETE FROM image_object_locations WHERE id=$1
+10	0.175068	0.008343	0.0175068	0.056371	0	0	isureal	"SELECT relations.id, relations.updated_at, u.id AS ""user.id"", u.username AS ""user.username"", u.secret_key_hash AS ""user.secret_key_hash"", u.display_name AS ""user.display_name"", u.bio AS ""user.bio"", u.profile_image_id AS ""user.profile_image_id"", u.region AS ""user.region"", u.account_type AS ""user.account_type"", u.status AS ""user.status""
    FROM (SELECT id, follower_id AS first_id, followee_id AS second_id, updated_at FROM follows WHERE followee_id=$1) relations
    JOIN users u ON u.status = $4
                AND u.id = CASE WHEN relations.first_id = $1 THEN relations.second_id ELSE relations.first_id END
    WHERE ($2::timestamptz IS NULL OR (relations.updated_at, relations.id) < ($2, $3))
    ORDER BY relations.updated_at DESC, relations.id DESC LIMIT $5"
-2	0.060718999999999995	0.020579	0.030359499999999998	0.040139999999999995	2	1	isureal	DELETE FROM follows WHERE follower_id=$1 AND followee_id=$2
-1	0.047873	0.047873	0.047873	0.047873	1	1	isureal	"UPDATE administrator_sessions
+3	0.163235	0.02928	0.054411666666666664	0.076504	3	1	isureal	UPDATE users SET status=$2, deleted_at=clock_timestamp(), updated_at=clock_timestamp() WHERE id=$1
+1	0.117552	0.117552	0.117552	0.117552	1	1	isureal	SELECT pg_stat_statements_reset()
+1	0.115094	0.115094	0.115094	0.115094	0	0	isureal	DELETE FROM posting_windows WHERE created_at > (SELECT created_at FROM initial_data_boundary)
+3	0.109235	0.031869	0.03641166666666667	0.040311	3	1	isureal	UPDATE users SET profile_image_id=$2,updated_at=clock_timestamp() WHERE id=$1
+10	0.097442	0.006254	0.0097442	0.017081000000000002	10	1	isureal	SELECT EXISTS(SELECT $3 FROM block_relations WHERE blocker_id=$1 AND blocked_id=$2)
+3	0.063176	0.017771	0.021058666666666667	0.022778	3	1	isureal	SELECT id FROM users WHERE id=$1 AND status=$2 FOR NO KEY UPDATE
+1	0.043184	0.043184	0.043184	0.043184	1	1	isureal	"UPDATE administrator_sessions
   SET active = $3, invalidated_at = clock_timestamp()
   WHERE administrator_id = $1 AND token_hash = $2 AND active = $4"
-1	0.031730999999999995	0.031730999999999995	0.031730999999999995	0.031730999999999995	1	1	isureal	UPDATE users SET profile_image_id=$2,updated_at=clock_timestamp() WHERE id=$1
-1	0.027145	0.027145	0.027145	0.027145	1	1	isureal	DELETE FROM image_object_locations WHERE id=$1
-1	0.006817	0.006817	0.006817	0.006817	1	1	isureal	SELECT administrator_id, token_hash, created_at FROM administrator_sessions WHERE id = $1
-1	0.00655	0.00655	0.00655	0.00655	0	0	isureal	SET session_replication_role = replica
+1	0.035762	0.035762	0.035762	0.035762	1	1	isureal	UPDATE users SET region = $2, updated_at = clock_timestamp() WHERE id = $1
+1	0.006821	0.006821	0.006821	0.006821	0	0	isureal	SET session_replication_role = replica
+1	0.006436	0.006436	0.006436	0.006436	1	1	isureal	SELECT administrator_id, token_hash, created_at FROM administrator_sessions WHERE id = $1
+1	0.004389	0.004389	0.004389	0.004389	0	0	isureal	LISTEN isureal_notifications

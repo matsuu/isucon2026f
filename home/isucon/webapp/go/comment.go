@@ -46,28 +46,36 @@ func selectCommentsWithAuthor(ctx context.Context, db sqlx.QueryerContext, condi
 }
 
 func canComment(ctx context.Context, db sqlx.QueryerContext, viewerID, postID string) (bool, error) {
+	_, allowed, err := canCommentWithViewer(ctx, db, viewerID, postID)
+	return allowed, err
+}
+
+// canCommentWithViewer は判定に使った viewer を返す。
+// 作成レスポンスのために同じユーザーを再取得しないで済む。
+func canCommentWithViewer(ctx context.Context, db sqlx.QueryerContext, viewerID, postID string) (viewerContext, bool, error) {
+	var viewer viewerContext
 	post, err := getPostWithAuthor(ctx, db, postID)
 	if errors.Is(err, sql.ErrNoRows) {
-		return false, nil
+		return viewer, false, nil
 	}
 	if err != nil {
-		return false, err
+		return viewer, false, err
 	}
-	viewer, err := loadViewerContext(ctx, db, viewerID)
+	viewer, err = loadPostViewerContext(ctx, db, viewerID, post.AuthorID, post.Visibility)
 	if errors.Is(err, sql.ErrNoRows) {
-		return false, nil
+		return viewer, false, nil
 	}
 	if err != nil {
-		return false, err
+		return viewer, false, err
 	}
 	if !viewer.canView(post.Post) || post.WindowEndedAt != nil {
-		return false, nil
+		return viewer, false, nil
 	}
 	if viewer.ID == post.AuthorID {
-		return viewer.HasPostedToday, nil
+		return viewer, viewer.HasPostedToday, nil
 	}
 	if post.Visibility == "public" {
-		return true, nil
+		return viewer, true, nil
 	}
-	return viewer.Friends[post.AuthorID], nil
+	return viewer, viewer.Friends[post.AuthorID], nil
 }

@@ -74,7 +74,7 @@ func replaceRealMojiHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		defer tx.Rollback()
-		allowed, err := canViewPost(ctx, tx, actor, post.ID)
+		viewer, allowed, err := canViewPostWithViewer(ctx, tx, actor, post.ID)
 		if err != nil {
 			return err
 		}
@@ -85,29 +85,23 @@ func replaceRealMojiHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		imageID := uuid.NewString()
-		var createdAt time.Time
-		if err := tx.GetContext(ctx, &createdAt, `INSERT INTO image_objects(id,owner_user_id,data,media_type) VALUES($1,$2,$3,'image/jpeg') RETURNING created_at`, imageID, actor, data); err != nil {
+		var imageCreatedAt time.Time
+		if err := tx.GetContext(ctx, &imageCreatedAt, `INSERT INTO image_objects(id,owner_user_id,data,media_type) VALUES($1,$2,$3,'image/jpeg') RETURNING created_at`, imageID, actor, data); err != nil {
 			return err
 		}
-		if _, err := tx.ExecContext(ctx, `INSERT INTO image_object_locations (id, created_at) VALUES ($1,$2)`, imageID, createdAt); err != nil {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO image_object_locations (id, created_at) VALUES ($1,$2)`, imageID, imageCreatedAt); err != nil {
 			return err
 		}
 		id := uuid.NewString()
-		if _, err := tx.ExecContext(ctx, `INSERT INTO realmojis(id,post_id,reactor_id,image_id,reaction_type,created_at) VALUES($1,$2,$3,$4,$5,clock_timestamp())`, id, post.ID, actor, imageID, input.ReactionType); err != nil {
+		var createdAt time.Time
+		if err := tx.GetContext(ctx, &createdAt, `INSERT INTO realmojis(id,post_id,reactor_id,image_id,reaction_type,created_at) VALUES($1,$2,$3,$4,$5,clock_timestamp()) RETURNING created_at`, id, post.ID, actor, imageID, input.ReactionType); err != nil {
 			return err
 		}
-		reaction, err := getRealMoji(ctx, tx, id)
-		if err != nil {
-			return err
-		}
-		user, err := getUser(ctx, tx, actor)
-		if err != nil {
-			return err
-		}
+		reaction := RealMoji{ID: id, PostID: post.ID, ReactorID: actor, ImageID: imageID, ReactionType: input.ReactionType, CreatedAt: createdAt}
 		if err := tx.Commit(); err != nil {
 			return err
 		}
-		return c.JSON(http.StatusCreated, newRealMojiResponse(reaction, user))
+		return c.JSON(http.StatusCreated, newRealMojiResponse(reaction, viewer.User))
 	}
 }
 
