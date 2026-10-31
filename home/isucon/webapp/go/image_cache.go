@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/labstack/echo/v5"
 )
@@ -14,9 +15,22 @@ import (
 const imageCacheURLPrefix = "/_internal_images/"
 const presetImageURLPrefix = "/_preset_images/"
 
+var imageCacheKeyCache sync.Map
+var presetImagePathCache sync.Map
+var runtimeImagePathCache sync.Map
+
 func imageCacheKey(imageID string) string {
+	if value, ok := imageCacheKeyCache.Load(imageID); ok {
+		return value.(string)
+	}
 	sum := sha256.Sum256([]byte(imageID))
-	return hex.EncodeToString(sum[:])
+	key := hex.EncodeToString(sum[:])
+	imageCacheKeyCache.Store(imageID, key)
+	return key
+}
+
+func imagePathCacheKey(imageID, mediaType string) string {
+	return imageID + "\x00" + mediaType
 }
 
 func imageFilePath(dir, imageID, mediaType string) string {
@@ -56,13 +70,45 @@ func existingImagePath(path string) (string, bool) {
 }
 
 // cachedImagePath はキャッシュファイルが存在し、空でない場合にそのパスを返す。
+// 実行時キャッシュは削除時に明示的に無効化する。
 func (h *HandlerContext) cachedImagePath(imageID, mediaType string) (string, bool) {
-	return existingImagePath(h.imageCachePath(imageID, mediaType))
+	cacheKey := imagePathCacheKey(imageID, mediaType)
+	if value, ok := runtimeImagePathCache.Load(cacheKey); ok {
+		return value.(string), true
+	}
+	path, ok := existingImagePath(h.imageCachePath(imageID, mediaType))
+	if ok {
+		runtimeImagePathCache.Store(cacheKey, path)
+	}
+	return path, ok
 }
 
 // cachedPresetImagePath は事前生成済みの preset ファイルが存在する場合にそのパスを返す。
+// presetは初期化でも削除されないため、存在確認結果をそのままキャッシュできる。
 func (h *HandlerContext) cachedPresetImagePath(imageID, mediaType string) (string, bool) {
-	return existingImagePath(h.presetImagePath(imageID, mediaType))
+	cacheKey := imagePathCacheKey(imageID, mediaType)
+	if value, ok := presetImagePathCache.Load(cacheKey); ok {
+		return value.(string), true
+	}
+	path, ok := existingImagePath(h.presetImagePath(imageID, mediaType))
+	if ok {
+		presetImagePathCache.Store(cacheKey, path)
+	}
+	return path, ok
+}
+
+func (h *HandlerContext) rememberRuntimeImagePath(imageID, mediaType, path string) {
+	runtimeImagePathCache.Store(imagePathCacheKey(imageID, mediaType), path)
+}
+
+func invalidateRuntimeImagePaths(imageID string) {
+	prefix := imageID + "\x00"
+	runtimeImagePathCache.Range(func(key, _ any) bool {
+		if name, ok := key.(string); ok && len(name) >= len(prefix) && name[:len(prefix)] == prefix {
+			runtimeImagePathCache.Delete(key)
+		}
+		return true
+	})
 }
 
 // openImageFile はpresetまたは実行時キャッシュの画像ファイルを開く。
@@ -141,6 +187,7 @@ func (h *HandlerContext) removeCachedImage(imageID string) {
 	for _, path := range matches {
 		_ = os.Remove(path)
 	}
+	invalidateRuntimeImagePaths(imageID)
 }
 
 // clearRuntimeImageCache は実行時キャッシュだけを消す。preset は消さない。
@@ -151,5 +198,9 @@ func (h *HandlerContext) clearRuntimeImageCache() error {
 	if err := os.RemoveAll(h.Config.ImageCacheDir); err != nil {
 		return err
 	}
+	runtimeImagePathCache.Range(func(key, _ any) bool {
+		runtimeImagePathCache.Delete(key)
+		return true
+	})
 	return os.MkdirAll(h.Config.ImageCacheDir, 0o755)
 }

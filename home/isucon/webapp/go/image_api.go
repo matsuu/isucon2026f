@@ -49,14 +49,18 @@ const imageVisibilitySQL = `(
      )
    )`
 
+const imageVisibilityCacheTTL = 5 * time.Second
+
 type imageMetadata struct {
 	OwnerUserID   string
 	SecretKeyHash string
 	MediaType     string
+	Visible       bool
+	VisibleUntil  time.Time
 }
 
 // 画像ID -> owner/署名鍵/media type は不変なのでプロセス内でキャッシュする。
-// 可視性は削除・置換で変わるため、キャッシュヒット時も毎回DBで確認する。
+// 可視性も画像削除の5秒猶予に合わせて最大5秒だけキャッシュする。
 var imageMetadataCache sync.Map
 
 func getImageHandler(h *HandlerContext) echo.HandlerFunc {
@@ -84,23 +88,37 @@ func getImageHandler(h *HandlerContext) echo.HandlerFunc {
 		metaValue, cachedMeta := imageMetadataCache.Load(input.ImageID)
 		var meta imageMetadata
 		var visible bool
+		now := time.Now()
 		if cachedMeta {
 			meta = metaValue.(imageMetadata)
-			var row struct {
-				Visible bool `db:"visible"`
-			}
-			err = h.DB.GetContext(ctx, &row, `
+			// falseはキャッシュしない。画像が後から投稿・プロフィール・RealMojiに
+			// 使われた場合のwrite-read整合性を崩さないため。
+			if meta.Visible && now.Before(meta.VisibleUntil) {
+				visible = true
+			} else {
+				var row struct {
+					Visible bool `db:"visible"`
+				}
+				err = h.DB.GetContext(ctx, &row, `
    SELECT `+imageVisibilityByOwnerSQL+` AS visible
    FROM users u
    WHERE u.id = $2 AND u.status = 'active'
   `, input.ImageID, meta.OwnerUserID)
-			if errors.Is(err, sql.ErrNoRows) {
-				return NewAPIError(http.StatusForbidden, "image_forbidden")
+				if errors.Is(err, sql.ErrNoRows) {
+					return NewAPIError(http.StatusForbidden, "image_forbidden")
+				}
+				if err != nil {
+					return err
+				}
+				visible = row.Visible
+				meta.Visible = row.Visible
+				if row.Visible {
+					meta.VisibleUntil = now.Add(imageVisibilityCacheTTL)
+				} else {
+					meta.VisibleUntil = time.Time{}
+				}
+				imageMetadataCache.Store(input.ImageID, meta)
 			}
-			if err != nil {
-				return err
-			}
-			visible = row.Visible
 		} else {
 			var image struct {
 				OwnerUserID   string `db:"owner_user_id"`
@@ -121,7 +139,13 @@ func getImageHandler(h *HandlerContext) echo.HandlerFunc {
 			if err != nil {
 				return err
 			}
-			meta = imageMetadata{OwnerUserID: image.OwnerUserID, SecretKeyHash: image.SecretKeyHash, MediaType: image.MediaType}
+			meta = imageMetadata{
+				OwnerUserID: image.OwnerUserID, SecretKeyHash: image.SecretKeyHash, MediaType: image.MediaType,
+				Visible: image.Visible,
+			}
+			if image.Visible {
+				meta.VisibleUntil = now.Add(imageVisibilityCacheTTL)
+			}
 			imageMetadataCache.Store(input.ImageID, meta)
 			visible = image.Visible
 		}
@@ -175,6 +199,7 @@ func getImageHandler(h *HandlerContext) echo.HandlerFunc {
 			// キャッシュに書けなくても画像自体は返す。
 			return c.Blob(http.StatusOK, meta.MediaType, object.Data)
 		}
+		h.rememberRuntimeImagePath(input.ImageID, meta.MediaType, cachePath)
 		return h.serveCachedImage(c, cachePath, meta.MediaType)
 	}
 }

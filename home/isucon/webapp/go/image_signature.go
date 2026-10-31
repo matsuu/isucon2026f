@@ -43,11 +43,17 @@ func startImageSignatureCacheCleanup() {
 	})
 }
 
+var imageSigningKeyCache sync.Map
+
 func imageSigningKey(secretKeyHash string) ([]byte, error) {
+	if value, ok := imageSigningKeyCache.Load(secretKeyHash); ok {
+		return value.([]byte), nil
+	}
 	key, err := hex.DecodeString(secretKeyHash)
 	if err != nil || len(key) != sha256.Size {
 		return nil, fmt.Errorf("invalid image signing key")
 	}
+	imageSigningKeyCache.Store(secretKeyHash, key)
 	return key, nil
 }
 
