@@ -72,6 +72,8 @@ CREATE TABLE image_objects_default PARTITION OF image_objects DEFAULT;
 -- 全パーティションを走査する。画像IDから created_at を引くための索引テーブル。
 CREATE TABLE image_object_locations (
   id varchar(36) PRIMARY KEY,
+  owner_user_id varchar(36) NOT NULL,
+  media_type text NOT NULL,
   created_at timestamptz NOT NULL
 );
 

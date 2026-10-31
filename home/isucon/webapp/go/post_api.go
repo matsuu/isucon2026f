@@ -117,7 +117,7 @@ func createPostHandler(h *HandlerContext) echo.HandlerFunc {
 		if _, err := tx.ExecContext(ctx, `INSERT INTO image_objects (id, owner_user_id, data, media_type, created_at) VALUES ($1, $2, $3, 'image/jpeg', $4)`, imageID, userID, imageData, postedAt); err != nil {
 			return err
 		}
-		if _, err := tx.ExecContext(ctx, `INSERT INTO image_object_locations (id, created_at) VALUES ($1, $2)`, imageID, postedAt); err != nil {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO image_object_locations (id, owner_user_id, media_type, created_at) VALUES ($1, $2, 'image/jpeg', $3)`, imageID, userID, postedAt); err != nil {
 			return err
 		}
 		postID := uuid.NewString()

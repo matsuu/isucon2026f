@@ -49,6 +49,21 @@ const imageVisibilitySQL = `(
      )
    )`
 
+// image_object_locations だけで可視性を判定する版。image_objects の大きな行を読まない。
+const imageVisibilityByLocationSQL = `(
+     COALESCE(u.profile_image_id = l.id, false)
+     OR EXISTS (
+       SELECT 1 FROM posts p
+       WHERE p.image_id = l.id AND p.author_id = u.id AND p.deleted_at IS NULL
+     )
+     OR EXISTS (
+       SELECT 1 FROM realmojis r
+       JOIN posts p ON p.id = r.post_id AND p.deleted_at IS NULL
+       JOIN users author ON author.id = p.author_id AND author.status = 'active'
+       WHERE r.image_id = l.id AND r.reactor_id = u.id AND r.replaced_at IS NULL AND r.deleted_at IS NULL
+     )
+   )`
+
 const imageVisibilityCacheTTL = 5 * time.Second
 
 type imageMetadata struct {
@@ -127,10 +142,9 @@ func getImageHandler(h *HandlerContext) echo.HandlerFunc {
 				Visible       bool   `db:"visible"`
 			}
 			err = h.DB.GetContext(ctx, &image, `
-   SELECT u.id AS owner_user_id, u.secret_key_hash, i.media_type, `+imageVisibilitySQL+` AS visible
+   SELECT l.owner_user_id, u.secret_key_hash, l.media_type, `+imageVisibilityByLocationSQL+` AS visible
    FROM image_object_locations l
-   JOIN image_objects i ON i.id = l.id AND i.created_at = l.created_at
-   JOIN users u ON u.id = i.owner_user_id
+   JOIN users u ON u.id = l.owner_user_id
    WHERE l.id = $1 AND u.status = 'active'
   `, input.ImageID)
 			if errors.Is(err, sql.ErrNoRows) {

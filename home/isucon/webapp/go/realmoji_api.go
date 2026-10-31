@@ -89,7 +89,7 @@ func replaceRealMojiHandler(h *HandlerContext) echo.HandlerFunc {
 		if err := tx.GetContext(ctx, &imageCreatedAt, `INSERT INTO image_objects(id,owner_user_id,data,media_type) VALUES($1,$2,$3,'image/jpeg') RETURNING created_at`, imageID, actor, data); err != nil {
 			return err
 		}
-		if _, err := tx.ExecContext(ctx, `INSERT INTO image_object_locations (id, created_at) VALUES ($1,$2)`, imageID, imageCreatedAt); err != nil {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO image_object_locations (id, owner_user_id, media_type, created_at) VALUES ($1,$2,'image/jpeg',$3)`, imageID, actor, imageCreatedAt); err != nil {
 			return err
 		}
 		id := uuid.NewString()

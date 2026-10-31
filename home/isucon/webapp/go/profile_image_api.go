@@ -42,7 +42,7 @@ func putProfileImageHandler(h *HandlerContext) echo.HandlerFunc {
 		if err := tx.GetContext(ctx, &createdAt, `INSERT INTO image_objects(id,owner_user_id,data,media_type) VALUES ($1,$2,$3,'image/jpeg') RETURNING created_at`, imageID, userID, data); err != nil {
 			return err
 		}
-		if _, err := tx.ExecContext(ctx, `INSERT INTO image_object_locations (id, created_at) VALUES ($1,$2)`, imageID, createdAt); err != nil {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO image_object_locations (id, owner_user_id, media_type, created_at) VALUES ($1,$2,'image/jpeg',$3)`, imageID, userID, createdAt); err != nil {
 			return err
 		}
 		if _, err := tx.ExecContext(ctx, `UPDATE users SET profile_image_id=$2,updated_at=clock_timestamp() WHERE id=$1`, userID, imageID); err != nil {
