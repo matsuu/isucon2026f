@@ -86,9 +86,14 @@ func getImageHandler(h *HandlerContext) echo.HandlerFunc {
 			return NewAPIError(http.StatusForbidden, "image_forbidden")
 		}
 
+		// reset.sql で消えない初期画像は、事前生成した preset を優先して使う。
+		if presetPath, ok := h.cachedPresetImagePath(input.ImageID, image.MediaType); ok {
+			return h.servePresetImage(c, presetPath, image.MediaType)
+		}
+
 		cachePath, cached := h.cachedImagePath(input.ImageID, image.MediaType)
 		if cached {
-			return serveCachedImage(c, cachePath, image.MediaType)
+			return h.serveCachedImage(c, cachePath, image.MediaType)
 		}
 
 		// キャッシュヒット時も最初のクエリで削除状態を確認済み。
@@ -114,6 +119,6 @@ func getImageHandler(h *HandlerContext) echo.HandlerFunc {
 			// キャッシュに書けなくても画像自体は返す。
 			return c.Blob(http.StatusOK, image.MediaType, object.Data)
 		}
-		return serveCachedImage(c, cachePath, image.MediaType)
+		return h.serveCachedImage(c, cachePath, image.MediaType)
 	}
 }

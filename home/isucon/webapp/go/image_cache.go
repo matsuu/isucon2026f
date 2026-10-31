@@ -10,12 +10,18 @@ import (
 	"github.com/labstack/echo/v5"
 )
 
-// imageCacheURLPrefix は nginx の internal location と一致させる。
+// imageCacheURLPrefix / presetImageURLPrefix は nginx の internal location と一致させる。
 const imageCacheURLPrefix = "/_internal_images/"
+const presetImageURLPrefix = "/_preset_images/"
 
 func imageCacheKey(imageID string) string {
 	sum := sha256.Sum256([]byte(imageID))
 	return hex.EncodeToString(sum[:])
+}
+
+func imageFilePath(dir, imageID, mediaType string) string {
+	key := imageCacheKey(imageID)
+	return filepath.Join(dir, key[:2], key+imageFileExtension(mediaType))
 }
 
 func imageFileExtension(mediaType string) string {
@@ -34,12 +40,14 @@ func imageFileExtension(mediaType string) string {
 }
 
 func (h *HandlerContext) imageCachePath(imageID, mediaType string) string {
-	return filepath.Join(h.Config.ImageCacheDir, imageCacheKey(imageID)+imageFileExtension(mediaType))
+	return imageFilePath(h.Config.ImageCacheDir, imageID, mediaType)
 }
 
-// cachedImagePath はキャッシュファイルが存在し、空でない場合にそのパスを返す。
-func (h *HandlerContext) cachedImagePath(imageID, mediaType string) (string, bool) {
-	path := h.imageCachePath(imageID, mediaType)
+func (h *HandlerContext) presetImagePath(imageID, mediaType string) string {
+	return imageFilePath(h.Config.PresetImageDir, imageID, mediaType)
+}
+
+func existingImagePath(path string) (string, bool) {
 	info, err := os.Stat(path)
 	if err != nil {
 		return path, false
@@ -47,13 +55,20 @@ func (h *HandlerContext) cachedImagePath(imageID, mediaType string) (string, boo
 	return path, info.Mode().IsRegular() && info.Size() > 0
 }
 
-// writeImageCacheFile は同一ディレクトリ内の一時ファイルに書いてから rename する。
-// nginx が書きかけのファイルを読むことはない。
-func writeImageCacheFile(path string, data []byte) error {
+// cachedImagePath はキャッシュファイルが存在し、空でない場合にそのパスを返す。
+func (h *HandlerContext) cachedImagePath(imageID, mediaType string) (string, bool) {
+	return existingImagePath(h.imageCachePath(imageID, mediaType))
+}
+
+// cachedPresetImagePath は事前生成済みの preset ファイルが存在する場合にそのパスを返す。
+func (h *HandlerContext) cachedPresetImagePath(imageID, mediaType string) (string, bool) {
+	return existingImagePath(h.presetImagePath(imageID, mediaType))
+}
+
+// writeImageFile は同一ディレクトリ内の一時ファイルに書いてから rename する。
+// nginx が書きかけのファイルを読むことはない。ディレクトリは呼び出し側で作成しておく。
+func writeImageFile(path string, data []byte) error {
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return err
-	}
 	tmp, err := os.CreateTemp(dir, ".image-*")
 	if err != nil {
 		return err
@@ -75,15 +90,35 @@ func writeImageCacheFile(path string, data []byte) error {
 	return os.Rename(tmpName, path)
 }
 
-func serveCachedImage(c *echo.Context, path, mediaType string) error {
+func writeImageCacheFile(path string, data []byte) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	return writeImageFile(path, data)
+}
+
+func serveImageFile(c *echo.Context, urlPrefix, root, path, mediaType string) error {
+	rel, err := filepath.Rel(root, path)
+	if err != nil {
+		rel = filepath.Base(path)
+	}
 	c.Response().Header().Set("Content-Type", mediaType)
-	c.Response().Header().Set("X-Accel-Redirect", imageCacheURLPrefix+filepath.Base(path))
+	c.Response().Header().Set("X-Accel-Redirect", urlPrefix+filepath.ToSlash(rel))
 	return c.NoContent(http.StatusOK)
+}
+
+func (h *HandlerContext) serveCachedImage(c *echo.Context, path, mediaType string) error {
+	return serveImageFile(c, imageCacheURLPrefix, h.Config.ImageCacheDir, path, mediaType)
+}
+
+func (h *HandlerContext) servePresetImage(c *echo.Context, path, mediaType string) error {
+	return serveImageFile(c, presetImageURLPrefix, h.Config.PresetImageDir, path, mediaType)
 }
 
 // removeCachedImage は削除された画像のキャッシュを掃除する。失敗してもリクエストは継続する。
 func (h *HandlerContext) removeCachedImage(imageID string) {
-	matches, err := filepath.Glob(filepath.Join(h.Config.ImageCacheDir, imageCacheKey(imageID)+".*"))
+	key := imageCacheKey(imageID)
+	matches, err := filepath.Glob(filepath.Join(h.Config.ImageCacheDir, key[:2], key+".*"))
 	if err != nil {
 		return
 	}
@@ -92,7 +127,8 @@ func (h *HandlerContext) removeCachedImage(imageID string) {
 	}
 }
 
-func (h *HandlerContext) clearImageCache() error {
+// clearRuntimeImageCache は実行時キャッシュだけを消す。preset は消さない。
+func (h *HandlerContext) clearRuntimeImageCache() error {
 	if h.Config.ImageCacheDir == "" {
 		return nil
 	}

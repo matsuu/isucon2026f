@@ -7,26 +7,28 @@ import (
 )
 
 type Config struct {
-	Region        string
-	DBHost        string
-	DBPort        string
-	DBUser        string
-	DBPassword    string
-	DBName        string
-	LogLevel      string
-	ImageCacheDir string
+	Region         string
+	DBHost         string
+	DBPort         string
+	DBUser         string
+	DBPassword     string
+	DBName         string
+	LogLevel       string
+	ImageCacheDir  string
+	PresetImageDir string
 }
 
 func ConfigFromEnv() *Config {
 	return &Config{
-		Region:        envOrDefault("ISUREAL_REGION", "asia"),
-		DBHost:        envOrDefault("ISUREAL_DB_HOST", "127.0.0.1"),
-		DBPort:        envOrDefault("ISUREAL_DB_PORT", "5432"),
-		DBUser:        envOrDefault("ISUREAL_DB_USER", "isureal"),
-		DBPassword:    envOrDefault("ISUREAL_DB_PASSWORD", "isureal"),
-		DBName:        envOrDefault("ISUREAL_DB_NAME", "isureal"),
-		LogLevel:      envOrDefault("ISUREAL_LOG_LEVEL", "debug"),
-		ImageCacheDir: envOrDefault("ISUREAL_IMAGE_CACHE_DIR", "/home/isucon/webapp/cache/images"),
+		Region:         envOrDefault("ISUREAL_REGION", "asia"),
+		DBHost:         envOrDefault("ISUREAL_DB_HOST", "127.0.0.1"),
+		DBPort:         envOrDefault("ISUREAL_DB_PORT", "5432"),
+		DBUser:         envOrDefault("ISUREAL_DB_USER", "isureal"),
+		DBPassword:     envOrDefault("ISUREAL_DB_PASSWORD", "isureal"),
+		DBName:         envOrDefault("ISUREAL_DB_NAME", "isureal"),
+		LogLevel:       envOrDefault("ISUREAL_LOG_LEVEL", "debug"),
+		ImageCacheDir:  envOrDefault("ISUREAL_IMAGE_CACHE_DIR", "/home/isucon/webapp/cache/images"),
+		PresetImageDir: envOrDefault("ISUREAL_PRESET_IMAGE_DIR", "/home/isucon/webapp/preset-images"),
 	}
 }
 

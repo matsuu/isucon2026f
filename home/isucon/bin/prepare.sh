@@ -28,6 +28,7 @@ sudo systemctl restart isureal-go
 
 for s in america1 europe1 ; do
   rsync -a --delete /home/isucon/webapp/go/ $s:/home/isucon/webapp/go/
+  cat /etc/nginx/sites-available/isureal.conf | ssh $s sudo tee /etc/nginx/sites-available/isureal.conf
   ssh $s bash -l -c "bin/build.sh"
   #ssh $s "rm webapp/cache/images/*"
 done
@@ -44,4 +45,9 @@ sudo truncate -s 0 "${nginx_access_log}"
 sudo truncate -s 0 "${nginx_error_log}"
 # sudo systemctl reload nginx
 
+
+(
+  dstat -tlamp -no-color 1 180 > /result/dstat-asia1.txt &
+  ssh asia2 dstat -tlamp -no-color 1 180 > /result/dstat-asia2.txt &
+)
 echo "OK"

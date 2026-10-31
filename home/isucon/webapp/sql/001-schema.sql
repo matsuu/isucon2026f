@@ -82,6 +82,7 @@ CREATE TABLE users (
   created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
   updated_at timestamptz NOT NULL DEFAULT clock_timestamp()
 );
+CREATE UNIQUE INDEX users_username_key ON users(username);
 ALTER TABLE image_objects ADD CONSTRAINT image_objects_owner_fk FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE RESTRICT;
 
 -- 2026-09-10 管理者を消す時のオペレーションはどうすればよいですか？
@@ -102,6 +103,8 @@ CREATE TABLE login_sessions (
   invalidated_at timestamptz,
   reason text
 );
+CREATE UNIQUE INDEX login_sessions_token_hash_key ON login_sessions(token_hash);
+CREATE UNIQUE INDEX login_sessions_one_active_user ON login_sessions(user_id) WHERE active;
 
 CREATE TABLE administrator_sessions (
   id varchar(36) PRIMARY KEY,
@@ -121,6 +124,7 @@ CREATE TABLE friendships (
   updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
   UNIQUE(user_low_id,user_high_id)
 );
+CREATE INDEX friendships_user_high_id_user_low_id_idx ON friendships(user_high_id, user_low_id);
 
 CREATE TABLE follows (
   id varchar(36) PRIMARY KEY,
@@ -130,6 +134,7 @@ CREATE TABLE follows (
   updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
   UNIQUE(follower_id,followee_id)
 );
+CREATE INDEX follows_followee_id_updated_at_id_idx ON follows(followee_id, updated_at DESC, id DESC);
 
 CREATE TABLE block_relations (
   id varchar(36) PRIMARY KEY,
@@ -138,6 +143,7 @@ CREATE TABLE block_relations (
   created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
   UNIQUE(blocker_id,blocked_id)
 );
+CREATE INDEX block_relations_blocked_id_blocker_id_idx ON block_relations(blocked_id, blocker_id);
 
 CREATE TABLE posting_windows (
   id varchar(36) PRIMARY KEY,
@@ -168,6 +174,8 @@ CREATE TABLE posts (
 );
 CREATE INDEX posts_author_id ON posts(author_id);
 CREATE INDEX posts_posting_window_id ON posts(posting_window_id);
+CREATE INDEX posts_id_idx ON posts(id) WHERE deleted_at IS NULL;
+CREATE INDEX posts_image_id_author_id_idx ON posts(image_id, author_id) WHERE deleted_at IS NULL;
 
 CREATE TABLE friend_requests (
   id varchar(36) PRIMARY KEY,
@@ -177,6 +185,8 @@ CREATE TABLE friend_requests (
   created_at timestamptz NOT NULL,
   updated_at timestamptz NOT NULL
 );
+CREATE INDEX friend_requests_recipient_id_status_updated_at_id_idx ON friend_requests(recipient_id, status, updated_at DESC, id DESC);
+CREATE INDEX friend_requests_requester_id_status_updated_at_id_idx ON friend_requests(requester_id, status, updated_at DESC, id DESC);
 
 CREATE TABLE realmojis (
   id varchar(36) PRIMARY KEY,
@@ -190,6 +200,7 @@ CREATE TABLE realmojis (
 );
 CREATE UNIQUE INDEX realmojis_one_active ON realmojis(post_id,reactor_id) WHERE replaced_at IS NULL AND deleted_at IS NULL;
 CREATE INDEX realmojis_post_id ON realmojis(post_id);
+CREATE INDEX realmojis_image_id_reactor_id_idx ON realmojis(image_id, reactor_id) WHERE replaced_at IS NULL AND deleted_at IS NULL;
 
 CREATE TABLE comments (
   id varchar(36) PRIMARY KEY,

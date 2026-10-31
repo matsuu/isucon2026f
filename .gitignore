@@ -174,6 +174,7 @@
 /home/isucon/pprof/
 /home/isucon/snap/
 /home/isucon/tmp/
+/home/isucon/webapp/go/preset-images
 /home/isucon/webapp/perl/
 /home/isucon/webapp/nodejs/
 /home/isucon/webapp/php/
@@ -181,6 +182,7 @@
 /home/isucon/webapp/ruby/
 /home/isucon/webapp/rust/
 /home/isucon/webapp/cache/
+/home/isucon/webapp/preset-images/
 /home/isucon/.*
 
 !/result/

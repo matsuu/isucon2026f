@@ -23,6 +23,9 @@ func NewServer(config *Config) *echo.Echo {
 	if err := os.MkdirAll(config.ImageCacheDir, 0o755); err != nil {
 		panic("failed to create image cache directory: " + err.Error())
 	}
+	if err := os.MkdirAll(config.PresetImageDir, 0o755); err != nil {
+		panic("failed to create preset image directory: " + err.Error())
+	}
 	e := echo.New()
 	e.IPExtractor = extractClientIP
 

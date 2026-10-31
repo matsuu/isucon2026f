@@ -23,8 +23,9 @@ func initializeHandler(h *HandlerContext) echo.HandlerFunc {
 		if err := cmd.Run(); err != nil {
 			return err
 		}
-		// DB を初期化したので、前回の実行で残った画像キャッシュも捨てる。
-		if err := h.clearImageCache(); err != nil {
+		// DB を初期化したので、前回の実行で残った実行時キャッシュだけを捨てる。
+		// preset は reset.sql で消えない初期画像用なので残す。
+		if err := h.clearRuntimeImageCache(); err != nil {
 			return err
 		}
 
