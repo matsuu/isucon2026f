@@ -34,9 +34,21 @@ func beginRelationshipTx(ctx context.Context, db *sqlx.DB, actor, target string)
 	if err != nil {
 		return nil, err
 	}
+
+	// 同じユーザーペアの関係操作だけを直列化する。
+	// users行を排他ロックしないため、人気ユーザーでも相手が違えば並列に進める。
+	pairKey := min(actor, target) + ":" + max(actor, target)
+	if _, err := tx.ExecContext(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`, pairKey); err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// FOR SHARE は複数トランザクションで共存できる。
+	// アカウント削除やプロフィール更新の FOR NO KEY UPDATE とは競合するため、
+	// active状態の確認は維持しつつ、関係操作同士はブロックしない。
 	for _, id := range []string{min(actor, target), max(actor, target)} {
-		var lockedID string
-		if err := tx.GetContext(ctx, &lockedID, `SELECT id FROM users WHERE id=$1 AND status='active' FOR NO KEY UPDATE`, id); err != nil {
+		var activeID string
+		if err := tx.GetContext(ctx, &activeID, `SELECT id FROM users WHERE id=$1 AND status='active' FOR SHARE`, id); err != nil {
 			tx.Rollback()
 			if errors.Is(err, sql.ErrNoRows) {
 				return nil, NewAPIError(http.StatusNotFound, "relationship_not_found")

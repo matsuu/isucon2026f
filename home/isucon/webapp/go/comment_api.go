@@ -50,9 +50,11 @@ func createCommentHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		defer tx.Rollback()
+		// コメント同士は直列化しない。FOR SHARE は複数同時に取得でき、
+		// アカウント削除などの FOR NO KEY UPDATE とは競合する。
 		for _, id := range slices.Compact([]string{min(actor, post.AuthorID), max(actor, post.AuthorID)}) {
-			var lockedID string
-			if err := tx.GetContext(ctx, &lockedID, `SELECT id FROM users WHERE id=$1 FOR NO KEY UPDATE`, id); err != nil {
+			var sharedID string
+			if err := tx.GetContext(ctx, &sharedID, `SELECT id FROM users WHERE id=$1 FOR SHARE`, id); err != nil {
 				return err
 			}
 		}
@@ -143,10 +145,6 @@ func deleteCommentHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		defer tx.Rollback()
-		var lockedID string
-		if err := tx.GetContext(ctx, &lockedID, `SELECT id FROM users WHERE id=$1 FOR NO KEY UPDATE`, actor); err != nil {
-			return err
-		}
 		var record struct {
 			AuthorID     string `db:"author_id"`
 			PostAuthorID string `db:"post_author_id"`

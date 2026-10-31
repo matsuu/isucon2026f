@@ -89,10 +89,7 @@ func registerHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		defer tx.Rollback()
-		// ユーザー名が一意である必要があります。
-		if _, err := tx.ExecContext(ctx, `LOCK TABLE users IN SHARE ROW EXCLUSIVE MODE`); err != nil {
-			return err
-		}
+		// ユーザー名の一意性は users_username_key で保証する。
 		var exists bool
 		if err := tx.GetContext(ctx, &exists, `SELECT EXISTS(SELECT 1 FROM users WHERE username = $1)`, input.Username); err != nil {
 			return err
@@ -103,6 +100,9 @@ func registerHandler(h *HandlerContext) echo.HandlerFunc {
 		userID := uuid.NewString()
 		if _, err := tx.ExecContext(ctx, `INSERT INTO users (id, username, secret_key_hash, display_name, region) VALUES ($1, $2, $3, $4, $5)`,
 			userID, input.Username, hex.EncodeToString(hash[:]), input.DisplayName, input.Region); err != nil {
+			if isUniqueViolation(err, "users_username_key") {
+				return NewAPIError(http.StatusConflict, "username_taken")
+			}
 			return err
 		}
 		user, err := getUser(ctx, tx, userID)
@@ -133,7 +133,7 @@ func loginHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		defer tx.Rollback()
 		var user User
-		err = tx.GetContext(ctx, &user, `SELECT id, username, secret_key_hash, display_name, bio, profile_image_id, region, account_type, status FROM users WHERE username = $1 FOR NO KEY UPDATE`, input.Username)
+		err = tx.GetContext(ctx, &user, `SELECT id, username, secret_key_hash, display_name, bio, profile_image_id, region, account_type, status FROM users WHERE username = $1`, input.Username)
 		if errors.Is(err, sql.ErrNoRows) {
 			return NewAPIError(http.StatusUnauthorized, "invalid_credentials")
 		}
@@ -145,6 +145,10 @@ func loginHandler(h *HandlerContext) echo.HandlerFunc {
 			return NewAPIError(http.StatusUnauthorized, "invalid_credentials")
 		}
 		session, err := createLoginSessionTx(ctx, tx, user.ID)
+		if errors.Is(err, sql.ErrNoRows) {
+			// 同時にアカウント削除された場合は認証失敗として扱う。
+			return NewAPIError(http.StatusUnauthorized, "invalid_credentials")
+		}
 		if err != nil {
 			return err
 		}
@@ -161,7 +165,7 @@ func logoutHandler(h *HandlerContext) echo.HandlerFunc {
 		if session == nil {
 			return NewAPIError(http.StatusUnauthorized, "invalid_session")
 		}
-		if err := InvalidateLoginSession(h.DB, session.UserID, session.TokenHash); err != nil {
+		if err := InvalidateLoginSession(c.Request().Context(), h.DB, session.UserID, session.TokenHash); err != nil {
 			return err
 		}
 		return c.NoContent(http.StatusNoContent)

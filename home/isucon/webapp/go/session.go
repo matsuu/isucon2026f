@@ -78,19 +78,32 @@ func SessionMiddleware(handlerContext *HandlerContext, authRequired bool) echo.M
 	}
 }
 
-func InvalidateLoginSession(db *sqlx.DB, userID string, tokenHash string) error {
-	tx, err := db.Beginx()
+func lockLoginSessionUser(ctx context.Context, tx *sqlx.Tx, userID string) error {
+	// 同じユーザーのログイン・ログアウトだけを直列化する。
+	// users行の排他ロックは取らない。
+	lockKey := "login:" + userID
+	if _, err := tx.ExecContext(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`, lockKey); err != nil {
+		return err
+	}
+	var activeID string
+	return tx.GetContext(ctx, &activeID, `SELECT id FROM users WHERE id=$1 AND status='active' FOR SHARE`, userID)
+}
+
+func InvalidateLoginSession(ctx context.Context, db *sqlx.DB, userID string, tokenHash string) error {
+	tx, err := db.BeginTxx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback()
 
-	var lockedUserID string
-	if err := tx.Get(&lockedUserID, `SELECT id FROM users WHERE id = $1 FOR NO KEY UPDATE`, userID); err != nil {
+	if err := lockLoginSessionUser(ctx, tx, userID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
 		return fmt.Errorf("failed to lock user: %w", err)
 	}
 
-	if _, err := tx.Exec(`
+	if _, err := tx.ExecContext(ctx, `
 		UPDATE login_sessions
 		SET active = false, invalidated_at = clock_timestamp(), reason = 'logout'
 		WHERE user_id = $1 AND active = true AND token_hash = $2	
@@ -127,8 +140,7 @@ func createLoginSessionTx(ctx context.Context, tx *sqlx.Tx, userID string) (*Ses
 	randomToken := uuid.NewString()
 	tokenHashBytes := sha256.Sum256([]byte(randomToken))
 	tokenHash := hex.EncodeToString(tokenHashBytes[:])
-	var lockedUserID string
-	if err := tx.GetContext(ctx, &lockedUserID, `SELECT id FROM users WHERE id = $1 AND status = 'active' FOR NO KEY UPDATE`, userID); err != nil {
+	if err := lockLoginSessionUser(ctx, tx, userID); err != nil {
 		return nil, fmt.Errorf("failed to lock user: %w", err)
 	}
 	if _, err := tx.ExecContext(ctx, `

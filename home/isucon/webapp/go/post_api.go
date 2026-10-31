@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/labstack/echo/v5"
 )
 
@@ -135,7 +134,7 @@ func createPostHandler(h *HandlerContext) echo.HandlerFunc {
    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
   `, postID, userID, window.ID, window.LocalDate, imageID, input.Caption, input.Visibility,
 			location.Kind, location.Latitude, location.Longitude, location.Locality, postedAt); err != nil {
-			if isPostSlotUniqueViolation(err) {
+			if isUniqueViolation(err, "idx_posts_author_local_date_unique") {
 				return NewAPIError(http.StatusConflict, "post_slot_unavailable")
 			}
 			return err
@@ -149,11 +148,6 @@ func createPostHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		return c.JSON(http.StatusCreated, newPostResponse(post, user))
 	}
-}
-
-func isPostSlotUniqueViolation(err error) bool {
-	var pgErr *pgconn.PgError
-	return errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "idx_posts_author_local_date_unique"
 }
 
 func newPostResponse(post Post, user User) createPostResponse {
