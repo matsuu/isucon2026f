@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/labstack/echo/v5"
@@ -22,13 +23,12 @@ func exportPostsHandler(h *HandlerContext) echo.HandlerFunc {
 		if err != nil {
 			return err
 		}
-		// 投稿画像は posts.posted_at と image_objects.created_at が一致する。
-		// created_at も条件に含めることで image_objects のパーティションを絞る。
+		// 画像本体はDBから読まず、preset/実行時キャッシュのローカルファイルを優先する。
+		// 見つからない画像だけDBから取得する。
 		rows, err := h.DB.QueryxContext(ctx, `
-   SELECT `+postColumns+`, i.data AS image_data
+   SELECT `+postColumns+`
    FROM posts p
    JOIN posting_windows w ON w.id = p.posting_window_id
-   JOIN image_objects i ON i.id = p.image_id AND i.created_at = p.posted_at
    WHERE p.author_id = $1 AND p.deleted_at IS NULL
    ORDER BY p.posted_at, p.id
   `, userID)
@@ -45,10 +45,7 @@ func exportPostsHandler(h *HandlerContext) echo.HandlerFunc {
 		profileImageURL := newGetMeResponse(author).ProfileImageURL
 		items := make([]exportPostResponse, 0)
 		for rows.Next() {
-			var post struct {
-				Post
-				ImageData []byte `db:"image_data"`
-			}
+			var post Post
 			if err := rows.StructScan(&post); err != nil {
 				return err
 			}
@@ -57,11 +54,23 @@ func exportPostsHandler(h *HandlerContext) echo.HandlerFunc {
 			if err != nil {
 				return err
 			}
-			if _, err := image.Write(post.ImageData); err != nil {
-				return err
+			if file, ok := h.openImageFile(post.ImageID, "image/jpeg"); ok {
+				_, err = io.Copy(image, file)
+				file.Close()
+				if err != nil {
+					return err
+				}
+			} else {
+				var imageData []byte
+				if err := h.DB.GetContext(ctx, &imageData, `SELECT i.data FROM image_objects i WHERE i.id=$1 AND i.created_at=$2`, post.ImageID, post.PostedAt); err != nil {
+					return err
+				}
+				if _, err := image.Write(imageData); err != nil {
+					return err
+				}
 			}
 			items = append(items, exportPostResponse{
-				createPostResponse: newPostResponseWithProfileImageURL(post.Post, author, profileImageURL),
+				createPostResponse: newPostResponseWithProfileImageURL(post, author, profileImageURL),
 				ImagePath:          imagePath,
 			})
 		}

@@ -65,6 +65,22 @@ func (h *HandlerContext) cachedPresetImagePath(imageID, mediaType string) (strin
 	return existingImagePath(h.presetImagePath(imageID, mediaType))
 }
 
+// openImageFile はpresetまたは実行時キャッシュの画像ファイルを開く。
+// exportのようにDBの画像データ読み出しを避けたい用途で使う。
+func (h *HandlerContext) openImageFile(imageID, mediaType string) (*os.File, bool) {
+	if path, ok := h.cachedPresetImagePath(imageID, mediaType); ok {
+		if file, err := os.Open(path); err == nil {
+			return file, true
+		}
+	}
+	if path, ok := h.cachedImagePath(imageID, mediaType); ok {
+		if file, err := os.Open(path); err == nil {
+			return file, true
+		}
+	}
+	return nil, false
+}
+
 // writeImageFile は同一ディレクトリ内の一時ファイルに書いてから rename する。
 // nginx が書きかけのファイルを読むことはない。ディレクトリは呼び出し側で作成しておく。
 func writeImageFile(path string, data []byte) error {
