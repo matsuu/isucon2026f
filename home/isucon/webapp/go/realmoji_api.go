@@ -1,11 +1,8 @@
 package isureal
 
 import (
-	"bytes"
 	"database/sql"
 	"errors"
-	"image/jpeg"
-	"io"
 	"mime/multipart"
 	"net/http"
 	"time"
@@ -29,7 +26,11 @@ type replaceRealMojiResponse struct {
 }
 
 func newRealMojiResponse(reaction RealMoji, user User) replaceRealMojiResponse {
-	return replaceRealMojiResponse{ID: reaction.ID, Reactor: newRelationshipUserResponse(user), ReactionType: reaction.ReactionType, ImageURL: signedImageURL(user, reaction.ImageID), CreatedAt: reaction.CreatedAt}
+	return newRealMojiResponseWithProfileImageURL(reaction, user, newGetMeResponse(user).ProfileImageURL)
+}
+
+func newRealMojiResponseWithProfileImageURL(reaction RealMoji, user User, profileImageURL *string) replaceRealMojiResponse {
+	return replaceRealMojiResponse{ID: reaction.ID, Reactor: newRelationshipUserResponseWithProfileImageURL(user, profileImageURL), ReactionType: reaction.ReactionType, ImageURL: signedImageURL(user, reaction.ImageID), CreatedAt: reaction.CreatedAt}
 }
 
 func replaceRealMojiHandler(h *HandlerContext) echo.HandlerFunc {
@@ -51,15 +52,8 @@ func replaceRealMojiHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		defer file.Close()
-		data, err := io.ReadAll(file)
+		data, err := readValidatedJPEG(file, 512)
 		if err != nil {
-			return err
-		}
-		img, err := jpeg.Decode(bytes.NewReader(data))
-		if err != nil {
-			return NewAPIError(http.StatusBadRequest, "invalid_realmoji")
-		}
-		if img.Bounds().Dx() > 512 || img.Bounds().Dy() > 512 {
 			return NewAPIError(http.StatusBadRequest, "invalid_realmoji")
 		}
 
@@ -146,8 +140,14 @@ func getRealMojisHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		items := make([]replaceRealMojiResponse, 0, len(reactions))
+		profileImageURLs := make(map[string]*string)
 		for _, reaction := range reactions {
-			items = append(items, newRealMojiResponse(reaction.RealMoji, reaction.Reactor))
+			profileImageURL, ok := profileImageURLs[reaction.Reactor.ID]
+			if !ok {
+				profileImageURL = newGetMeResponse(reaction.Reactor).ProfileImageURL
+				profileImageURLs[reaction.Reactor.ID] = profileImageURL
+			}
+			items = append(items, newRealMojiResponseWithProfileImageURL(reaction.RealMoji, reaction.Reactor, profileImageURL))
 		}
 		hasMore := len(items) > 50
 		if hasMore {

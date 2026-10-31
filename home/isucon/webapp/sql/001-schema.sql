@@ -218,11 +218,11 @@ CREATE TABLE comments (
 CREATE INDEX comments_post_id ON comments(post_id);
 
 CREATE TABLE notifications (
-  id varchar(36) PRIMARY KEY,
+  id varchar(36) NOT NULL,
   user_id varchar(36) NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   posting_window_id varchar(36) NOT NULL REFERENCES posting_windows(id) ON DELETE RESTRICT,
   created_at timestamptz NOT NULL,
-  UNIQUE(user_id,posting_window_id)
+  PRIMARY KEY (user_id, posting_window_id)
 );
 
 CREATE TABLE ip_bans (

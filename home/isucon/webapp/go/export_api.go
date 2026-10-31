@@ -2,7 +2,6 @@ package isureal
 
 import (
 	"archive/zip"
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -23,26 +22,34 @@ func exportPostsHandler(h *HandlerContext) echo.HandlerFunc {
 		if err != nil {
 			return err
 		}
-		var posts []struct {
-			Post
-			ImageData []byte `db:"image_data"`
-		}
-		if err := h.DB.SelectContext(ctx, &posts, `
+		rows, err := h.DB.QueryxContext(ctx, `
    SELECT `+postColumns+`, i.data AS image_data
    FROM posts p
    JOIN posting_windows w ON w.id = p.posting_window_id
    JOIN image_objects i ON i.id = p.image_id
    WHERE p.author_id = $1 AND p.deleted_at IS NULL
    ORDER BY p.posted_at, p.id
-  `, userID); err != nil {
+  `, userID)
+		if err != nil {
 			return err
 		}
+		defer rows.Close()
 
-		var body bytes.Buffer
-		writer := zip.NewWriter(&body)
-		defer writer.Close()
-		items := make([]exportPostResponse, 0, len(posts))
-		for _, post := range posts {
+		c.Response().Header().Set(echo.HeaderContentDisposition, `attachment; filename="isureal-posts.zip"`)
+		c.Response().Header().Set(echo.HeaderCacheControl, "no-store")
+		c.Response().WriteHeader(http.StatusOK)
+
+		writer := zip.NewWriter(c.Response())
+		profileImageURL := newGetMeResponse(author).ProfileImageURL
+		items := make([]exportPostResponse, 0)
+		for rows.Next() {
+			var post struct {
+				Post
+				ImageData []byte `db:"image_data"`
+			}
+			if err := rows.StructScan(&post); err != nil {
+				return err
+			}
 			imagePath := fmt.Sprintf("images/%06d.jpg", len(items)+1)
 			image, err := writer.CreateHeader(&zip.FileHeader{Name: imagePath, Method: zip.Store})
 			if err != nil {
@@ -51,7 +58,13 @@ func exportPostsHandler(h *HandlerContext) echo.HandlerFunc {
 			if _, err := image.Write(post.ImageData); err != nil {
 				return err
 			}
-			items = append(items, exportPostResponse{createPostResponse: newPostResponse(post.Post, author), ImagePath: imagePath})
+			items = append(items, exportPostResponse{
+				createPostResponse: newPostResponseWithProfileImageURL(post.Post, author, profileImageURL),
+				ImagePath:          imagePath,
+			})
+		}
+		if err := rows.Err(); err != nil {
+			return err
 		}
 		manifest, err := writer.Create("posts.json")
 		if err != nil {
@@ -60,11 +73,6 @@ func exportPostsHandler(h *HandlerContext) echo.HandlerFunc {
 		if err := json.NewEncoder(manifest).Encode(items); err != nil {
 			return err
 		}
-		if err := writer.Close(); err != nil {
-			return err
-		}
-		c.Response().Header().Set(echo.HeaderContentDisposition, `attachment; filename="isureal-posts.zip"`)
-		c.Response().Header().Set(echo.HeaderCacheControl, "no-store")
-		return c.Blob(http.StatusOK, "application/zip", body.Bytes())
+		return writer.Close()
 	}
 }

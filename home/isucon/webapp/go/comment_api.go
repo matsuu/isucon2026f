@@ -24,7 +24,11 @@ type createCommentResponse struct {
 }
 
 func newCommentResponse(comment Comment, user User) createCommentResponse {
-	return createCommentResponse{ID: comment.ID, Author: newRelationshipUserResponse(user), Body: comment.Body, CreatedAt: comment.CreatedAt}
+	return newCommentResponseWithProfileImageURL(comment, user, newGetMeResponse(user).ProfileImageURL)
+}
+
+func newCommentResponseWithProfileImageURL(comment Comment, user User, profileImageURL *string) createCommentResponse {
+	return createCommentResponse{ID: comment.ID, Author: newRelationshipUserResponseWithProfileImageURL(user, profileImageURL), Body: comment.Body, CreatedAt: comment.CreatedAt}
 }
 
 func createCommentHandler(h *HandlerContext) echo.HandlerFunc {
@@ -117,8 +121,14 @@ func getCommentsHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		items := make([]createCommentResponse, 0, len(comments))
+		profileImageURLs := make(map[string]*string)
 		for _, comment := range comments {
-			items = append(items, newCommentResponse(comment.Comment, comment.Author))
+			profileImageURL, ok := profileImageURLs[comment.Author.ID]
+			if !ok {
+				profileImageURL = newGetMeResponse(comment.Author).ProfileImageURL
+				profileImageURLs[comment.Author.ID] = profileImageURL
+			}
+			items = append(items, newCommentResponseWithProfileImageURL(comment.Comment, comment.Author, profileImageURL))
 		}
 		hasMore := len(items) > 50
 		if hasMore {

@@ -84,9 +84,13 @@ func listMemories(ctx context.Context, db sqlx.QueryerContext, userID string, st
 		return response, err
 	}
 	items := make([]memoryPostResponse, 0, len(posts))
+	var profileImageURL *string
+	if len(posts) > 0 {
+		profileImageURL = newGetMeResponse(posts[0].Author).ProfileImageURL
+	}
 	for _, post := range posts {
 		items = append(items, memoryPostResponse{
-			createPostResponse: newPostResponse(post.Post, post.Author),
+			createPostResponse: newPostResponseWithProfileImageURL(post.Post, post.Author, profileImageURL),
 			RealMojis:          make([]replaceRealMojiResponse, 0),
 			Comments:           make([]createCommentResponse, 0),
 		})
@@ -121,10 +125,19 @@ func loadMemoryInteractions(ctx context.Context, db sqlx.QueryerContext, items [
 	if err != nil {
 		return err
 	}
+	profileImageURLs := make(map[string]*string)
+	profileImageURL := func(user User) *string {
+		if url, ok := profileImageURLs[user.ID]; ok {
+			return url
+		}
+		url := newGetMeResponse(user).ProfileImageURL
+		profileImageURLs[user.ID] = url
+		return url
+	}
 	for _, reaction := range reactions {
 		item := itemByPostID[reaction.PostID]
 		if len(item.RealMojis) < 50 {
-			item.RealMojis = append(item.RealMojis, newRealMojiResponse(reaction.RealMoji, reaction.Reactor))
+			item.RealMojis = append(item.RealMojis, newRealMojiResponseWithProfileImageURL(reaction.RealMoji, reaction.Reactor, profileImageURL(reaction.Reactor)))
 		}
 	}
 
@@ -139,7 +152,7 @@ func loadMemoryInteractions(ctx context.Context, db sqlx.QueryerContext, items [
 	for _, comment := range comments {
 		item := itemByPostID[comment.PostID]
 		if len(item.Comments) < 50 {
-			item.Comments = append(item.Comments, newCommentResponse(comment.Comment, comment.Author))
+			item.Comments = append(item.Comments, newCommentResponseWithProfileImageURL(comment.Comment, comment.Author, profileImageURL(comment.Author)))
 		}
 	}
 	return nil

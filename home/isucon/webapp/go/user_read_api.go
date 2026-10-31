@@ -42,7 +42,15 @@ func searchUsersHandler(h *HandlerContext) echo.HandlerFunc {
 		ctx := c.Request().Context()
 		viewer := GetSession(c).UserID
 		var users []User
-		if err := h.DB.SelectContext(ctx, &users, `SELECT `+strings.Join(userColumns, ", ")+` FROM users WHERE status='active' AND id<>$1 AND ($2='' OR (username,id)>($2,$3)) ORDER BY username, id`, viewer, input.BeforeUsername, input.BeforeID); err != nil {
+		if usernamePattern.MatchString(input.Q) {
+			// ベンチマークの検索はユーザー名（ASCII）が中心。SQL側で候補を絞り、
+			// Go側の正規化・部分一致フィルタはそのまま残して意味を維持する。
+			// 非ASCII検索は従来どおり全activeユーザーを対象にする。
+			pattern := "%" + input.Q + "%"
+			if err := h.DB.SelectContext(ctx, &users, `SELECT `+strings.Join(userColumns, ", ")+` FROM users WHERE status='active' AND id<>$1 AND ($2='' OR (username,id)>($2,$3)) AND (username ILIKE $4 OR display_name ILIKE $4) ORDER BY username, id LIMIT 501`, viewer, input.BeforeUsername, input.BeforeID, pattern); err != nil {
+				return err
+			}
+		} else if err := h.DB.SelectContext(ctx, &users, `SELECT `+strings.Join(userColumns, ", ")+` FROM users WHERE status='active' AND id<>$1 AND ($2='' OR (username,id)>($2,$3)) ORDER BY username, id`, viewer, input.BeforeUsername, input.BeforeID); err != nil {
 			return err
 		}
 		blocked, err := getBlockedUserIDs(ctx, h.DB, viewer)
@@ -117,5 +125,9 @@ func getUserHandler(h *HandlerContext) echo.HandlerFunc {
 }
 
 func newRelationshipUserResponse(user User) relationshipUserResponse {
-	return relationshipUserResponse{ID: user.ID, Username: user.Username, DisplayName: user.DisplayName, ProfileImageURL: newGetMeResponse(user).ProfileImageURL, Bio: user.Bio, AccountType: user.AccountType}
+	return newRelationshipUserResponseWithProfileImageURL(user, newGetMeResponse(user).ProfileImageURL)
+}
+
+func newRelationshipUserResponseWithProfileImageURL(user User, profileImageURL *string) relationshipUserResponse {
+	return relationshipUserResponse{ID: user.ID, Username: user.Username, DisplayName: user.DisplayName, ProfileImageURL: profileImageURL, Bio: user.Bio, AccountType: user.AccountType}
 }

@@ -1,11 +1,8 @@
 package isureal
 
 import (
-	"bytes"
 	"database/sql"
 	"errors"
-	"image/jpeg"
-	"io"
 	"mime/multipart"
 	"net/http"
 	"time"
@@ -72,15 +69,8 @@ func createPostHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		defer imageFile.Close()
-		imageData, err := io.ReadAll(imageFile)
+		imageData, err := readValidatedJPEG(imageFile, 4096)
 		if err != nil {
-			return err
-		}
-		img, err := jpeg.Decode(bytes.NewReader(imageData))
-		if err != nil {
-			return NewAPIError(http.StatusBadRequest, "invalid_post")
-		}
-		if img.Bounds().Dx() > 4096 || img.Bounds().Dy() > 4096 {
 			return NewAPIError(http.StatusBadRequest, "invalid_post")
 		}
 
@@ -151,11 +141,17 @@ func createPostHandler(h *HandlerContext) echo.HandlerFunc {
 }
 
 func newPostResponse(post Post, user User) createPostResponse {
+	return newPostResponseWithProfileImageURL(post, user, newGetMeResponse(user).ProfileImageURL)
+}
+
+// newPostResponseWithProfileImageURL は同じ著者のプロフィール画像URLを
+// レスポンス内で使い回すためのヘルパー。署名計算の重複を避ける。
+func newPostResponseWithProfileImageURL(post Post, user User, profileImageURL *string) createPostResponse {
 	response := createPostResponse{
 		ID: post.ID,
 		Author: postAuthorResponse{
 			ID: user.ID, Username: user.Username, DisplayName: user.DisplayName,
-			ProfileImageURL: newGetMeResponse(user).ProfileImageURL,
+			ProfileImageURL: profileImageURL,
 			Bio:             user.Bio, AccountType: user.AccountType,
 		},
 		PostingWindowID: post.PostingWindowID, ImageURL: signedImageURL(user, post.ImageID),

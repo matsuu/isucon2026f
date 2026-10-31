@@ -21,7 +21,7 @@ type getImageRequest struct {
 }
 
 const imageVisibilitySQL = `(
-     u.profile_image_id = i.id
+     COALESCE(u.profile_image_id = i.id, false)
      OR EXISTS (
        SELECT 1 FROM posts p
        WHERE p.image_id = i.id AND p.author_id = u.id AND p.deleted_at IS NULL
