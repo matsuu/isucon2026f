@@ -101,7 +101,7 @@ type viewerContext struct {
 	Blocked          map[string]bool
 }
 
-func loadViewerContext(ctx context.Context, db sqlx.QueryerContext, viewerID string) (viewerContext, error) {
+func loadFeedViewerContext(ctx context.Context, db sqlx.QueryerContext, viewerID, feed string) (viewerContext, error) {
 	viewer := viewerContext{}
 	var row struct {
 		User
@@ -126,9 +126,18 @@ func loadViewerContext(ctx context.Context, db sqlx.QueryerContext, viewerID str
 	if err := viewer.setImageKey(); err != nil {
 		return viewer, err
 	}
+	// 今日まだ投稿していないユーザーはフィードが空になるため、
+	// 友達・友達の友達・ブロック一覧を読む必要がない。
+	if !viewer.HasPostedToday {
+		return viewer, nil
+	}
 	var err error
 	if viewer.Blocked, err = getBlockedUserIDs(ctx, db, viewer.ID); err != nil {
 		return viewer, err
+	}
+	// public は友達関係を一切必要としない。
+	if feed == "public" {
+		return viewer, nil
 	}
 	friends, err := getFriendIDs(ctx, db, viewer.ID)
 	if err != nil {
@@ -141,6 +150,11 @@ func loadViewerContext(ctx context.Context, db sqlx.QueryerContext, viewerID str
 	for _, id := range friends {
 		viewer.Friends[id] = true
 	}
+	// friends は友達の友達・共通友達を必要としない。
+	if feed == "friends" {
+		return viewer, nil
+	}
+
 	var friendships []struct {
 		UserLowID  string `db:"user_low_id"`
 		UserHighID string `db:"user_high_id"`
@@ -149,17 +163,19 @@ func loadViewerContext(ctx context.Context, db sqlx.QueryerContext, viewerID str
 		return viewer, err
 	}
 	viewer.FriendsOfFriends = make(map[string]bool, len(friendships))
-	viewer.MutualFriends = make(map[string]int, len(friendships))
+	if feed == "friends-of-friends" {
+		viewer.MutualFriends = make(map[string]int, len(friendships))
+	}
 	for _, friendship := range friendships {
 		if viewer.Friends[friendship.UserLowID] {
 			viewer.FriendsOfFriends[friendship.UserHighID] = true
-			if friendship.UserHighID != viewer.ID {
+			if feed == "friends-of-friends" && friendship.UserHighID != viewer.ID {
 				viewer.MutualFriends[friendship.UserHighID]++
 			}
 		}
 		if viewer.Friends[friendship.UserHighID] {
 			viewer.FriendsOfFriends[friendship.UserLowID] = true
-			if friendship.UserLowID != viewer.ID {
+			if feed == "friends-of-friends" && friendship.UserLowID != viewer.ID {
 				viewer.MutualFriends[friendship.UserLowID]++
 			}
 		}
@@ -176,7 +192,7 @@ type postViewerRow struct {
 }
 
 // loadPostViewerContext は1投稿の可視性判定に必要な関係だけを取得する。
-// フィード用の loadViewerContext と違い、友達全件や友達の友達全件は読まない。
+// フィード用の loadFeedViewerContext と違い、友達全件や友達の友達全件は読まない。
 func loadPostViewerContext(ctx context.Context, db sqlx.QueryerContext, viewerID, authorID, visibility string) (viewerContext, error) {
 	viewer := viewerContext{}
 	needFriend := viewerID != authorID && visibility != "public"
