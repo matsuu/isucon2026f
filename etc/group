@@ -64,3 +64,5 @@ isucon:x:1100:
 ssl-cert:x:113:postgres
 postgres:x:114:
 isuadmin:x:1101:
+pcp:x:988:
+nginx:x:987:
