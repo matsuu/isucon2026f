@@ -32,7 +32,7 @@ echo -n "comment: " ; read comment
 set -ex
 
 sudo git commit --allow-empty -m "$score $comment"
-hash=`git rev-parse HEAD`
+hash=`sudo git rev-parse HEAD`
 sudo git push origin HEAD
 
 #cat "${data_dir}/import.sql" | sed -e "s/REPLACE_HERE/$hash/" | duckdb --cmd "set variable score = $score; set variable comment = '$comment'; set variable hash='$hash';" "${data_dir}/isucon14.duckdb"

@@ -25,7 +25,7 @@ EOF
 sudo systemctl restart isureal-go
 
 # mysql
-#sudo mysql -e "CALL sys.ps_truncate_all_tables(FALSE);"
+echo "SELECT pg_stat_statements_reset();" | PGPASSWORD=isureal psql -h asia2 -U isureal
 #sudo truncate -s 0 "${mysql_slow_log}"
 #sudo truncate -s 0 "${mysql_error_log}"
 # sudo systemctl restart mysql

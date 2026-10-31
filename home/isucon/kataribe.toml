@@ -3,7 +3,7 @@
 ################################################################################
 
 # Top Ranking Group By Request
-ranking_count = 20
+ranking_count = 100
 
 # Top Slow Requests
 slow_count = 37
@@ -99,6 +99,97 @@ duration_index = 10
 #regexp = '^(GET|HEAD) /images/'
 #name = 'GET /images/*'
 
+[[bundle]]
+regexp = '^(GET|HEAD) /api/users/.*'
+name = 'GET /api/users/:userId'
+
+[[bundle]]
+regexp = '^(GET|HEAD) /api/posts/.*'
+name = 'GET /api/posts/:userId'
+
+[[bundle]]
+regexp = '^PATCH /api/posts/.*'
+name = 'PATCH /api/posts/:userId'
+
+[[bundle]]
+regexp = '^DELETE /api/posts/.*'
+name = 'DELETE /api/posts/:userId'
+
+[[bundle]]
+regexp = '^(GET|HEAD) /api/feeds/.*'
+name = 'GET /api/feeds/:feed'
+
+[[bundle]]
+regexp = '^(GET|HEAD) /api/memories/.*'
+name = 'GET /api/memories/:date'
+
+[[bundle]]
+regexp = '^POST /api/posts/[^/]*/comments'
+name = 'POST /api/posts/:postId/comments'
+
+[[bundle]]
+regexp = '^(GET|HEAD) /api/posts/[^/]*/comments'
+name = 'GET /api/posts/:postId/comments'
+
+[[bundle]]
+regexp = '^DELETE /api/comments/.*'
+name = 'DELETE /api/comments/:commentId'
+
+[[bundle]]
+regexp = '^POST /api/posts/[^/]*/realmojis'
+name = 'POST /api/posts/:postId/realmojis'
+
+[[bundle]]
+regexp = '^(GET|HEAD) /api/posts/[^/]*/realmojis'
+name = 'GET /api/posts/:postId/realmojis'
+
+[[bundle]]
+regexp = '^DELETE /api/realmojis/.*'
+name = 'DELETE /api/realmojis/:realMojiId'
+
+[[bundle]]
+regexp = '^(GET|HEAD) /api/images/.*'
+name = 'GET /api/images/:imageId'
+
+[[bundle]]
+regexp = '^POST /api/friend-requests/.*/.*'
+name = 'POST /api/friend-requests/:requestId/:action'
+
+[[bundle]]
+regexp = '^(GET|HEAD) /api/relationships/.*'
+name = 'GET /api/relationships/:kind'
+
+[[bundle]]
+regexp = '^DELETE /api/friendships/.*'
+name = 'DELETE /api/friendships/:userId'
+
+[[bundle]]
+regexp = '^PUT /api/follows/.*'
+name = 'PUT /api/follows/:userId'
+
+[[bundle]]
+regexp = '^DELETE /api/follows/.*'
+name = 'DELETE /api/follows/:userId'
+
+[[bundle]]
+regexp = '^PUT /api/blocks/.*'
+name = 'PUT /api/blocks/:userId'
+
+[[bundle]]
+regexp = '^DELETE /api/blocks/.*'
+name = 'DELETE /api/blocks/:userId'
+
+[[bundle]]
+regexp = '^PUT /api/admin/users/.*/certification'
+name = 'PUT /api/admin/users/:userId/certification'
+
+[[bundle]]
+regexp = '^DELETE /api/admin/users/.*/certification'
+name = 'DELETE /api/admin/users/:userId/certification'
+
+[[bundle]]
+regexp = '^GET /assets/.*'
+name = '^GET /assets/*'
 ################################################################################
 # Replace
 ################################################################################
@@ -111,9 +202,9 @@ duration_index = 10
 #regexp = '/[0-9]+(/|\s)'
 #replace = '/<num>$1'
 #
-#[[replace]]
-#regexp = '=[0-9]+(&|\s)'
-#replace = '=<num>$1'
+[[replace]]
+regexp = '=[^& ]*(&|\s)'
+replace = '=*$1'
 #
 #[[replace]]
 #regexp = '\s+HTTP/[0-9.]+$'
